@@ -1,0 +1,24 @@
+{
+  "name": "focus",
+  "version": "1.0.0",
+  "description": "Hello! My name is Abdullah Ariyanto. I am currently a university student aiming to become a software engineer. My aim for this small project is to deploy a simple chrome and safari extension that can block distracting websites and help users focus on their work using Pomodoro Technique. I intend to add more feature to this project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/A-Ariyanto/focus.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/A-Ariyanto/focus/issues"
+  },
+  "homepage": "https://github.com/A-Ariyanto/focus#readme",
+  "devDependencies": {
+    "eslint": "^9.39.2"
+  }
+}
