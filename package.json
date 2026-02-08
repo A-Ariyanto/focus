@@ -17,5 +17,8 @@
   "bugs": {
     "url": "https://github.com/A-Ariyanto/focus/issues"
   },
-  "homepage": "https://github.com/A-Ariyanto/focus#readme"
+  "homepage": "https://github.com/A-Ariyanto/focus#readme",
+  "devDependencies": {
+    "eslint": "^9.39.2"
+  }
 }
