@@ -343,13 +343,16 @@ function normalizeDomain(input) {
 }
 
 /**
- * Broadcast a BLOCKLIST_UPDATE message to all tabs via the background service worker.
- * Content scripts listen for this to re-evaluate blocking state.
+ * Broadcast a BLOCKLIST_UPDATE message to the background service worker.
+ * This is a best-effort supplementary notification — the content script
+ * also listens to chrome.storage.onChanged directly, so blocking works
+ * even if this message fails to deliver.
  */
-function broadcastBlocklistUpdate() {
+async function broadcastBlocklistUpdate() {
   try {
-    chrome.runtime.sendMessage({ type: 'BLOCKLIST_UPDATE' });
-  } catch (err) {
-    console.warn('[Focus] Failed to broadcast blocklist update:', err);
+    await chrome.runtime.sendMessage({ type: 'BLOCKLIST_UPDATE' });
+  } catch {
+    // Background SW may be asleep — this is fine.
+    // Content scripts will pick up the change via chrome.storage.onChanged.
   }
 }

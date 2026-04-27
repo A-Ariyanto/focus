@@ -280,9 +280,19 @@
 
       const shouldBlock = settings.blockingEnabled && isDomainBlocked(domain, blocklist);
 
+      console.log('[Focus Enforcer] Check:', {
+        domain,
+        blocklist,
+        blockingEnabled: settings.blockingEnabled,
+        shouldBlock,
+        isCurrentlyBlocked: isBlocked,
+      });
+
       if (shouldBlock && !isBlocked) {
+        console.log('[Focus Enforcer] BLOCKING', domain);
         injectOverlay(domain);
       } else if (!shouldBlock && isBlocked) {
+        console.log('[Focus Enforcer] UNBLOCKING', domain);
         removeOverlay();
       }
     } catch (err) {
@@ -464,15 +474,32 @@
   }
 
   // ===========================================================================
-  // Message Listener
+  // Storage Change Listener (Primary — no background dependency)
+  // ===========================================================================
+
+  /**
+   * Listen directly to chrome.storage.onChanged for blocklist/settings changes.
+   * This is the PRIMARY mechanism — works even if the background SW is asleep.
+   */
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'sync' && (changes.blocklist || changes.settings)) {
+      console.log('[Focus Enforcer] Storage changed — re-evaluating block state.');
+      checkAndEnforce();
+    }
+  });
+
+  // ===========================================================================
+  // Message Listener (Supplementary — for immediate broadcast)
   // ===========================================================================
 
   /**
    * Listen for BLOCKLIST_UPDATE messages from background/popup.
-   * Re-evaluates blocking state immediately.
+   * Supplementary to the storage listener — provides faster response
+   * when the background relay is available.
    */
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'BLOCKLIST_UPDATE') {
+      console.log('[Focus Enforcer] Received BLOCKLIST_UPDATE message.');
       checkAndEnforce();
     }
   });
@@ -491,6 +518,8 @@
   // Initialization
   // ===========================================================================
 
+  console.log('[Focus Enforcer] Content script loaded on:', getCurrentDomain());
+
   // Run immediately at document_start
   checkAndEnforce();
 
@@ -501,3 +530,4 @@
     setupSPAObserver();
   }
 })();
+
