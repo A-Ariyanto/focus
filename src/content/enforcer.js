@@ -226,7 +226,6 @@
 
   let isBlocked = false;
   let overlayHost = null;
-  let lastCheckedUrl = '';
 
   // ===========================================================================
   // Domain Extraction
@@ -241,6 +240,27 @@
   }
 
   // ===========================================================================
+  // Domain Matching
+  // ===========================================================================
+
+  /**
+   * Check if a domain matches any entry in the blocklist.
+   * Supports subdomain matching: "m.youtube.com" matches "youtube.com".
+   * Uses dot-boundary to prevent "notyoutube.com" from matching "youtube.com".
+   * @param {string} domain — current page domain
+   * @param {string[]} blocklist — array of blocked base domains
+   * @returns {boolean}
+   */
+  function isDomainBlocked(domain, blocklist) {
+    for (const blocked of blocklist) {
+      if (domain === blocked || domain.endsWith('.' + blocked)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // ===========================================================================
   // Blocking Logic
   // ===========================================================================
 
@@ -249,21 +269,16 @@
    * Reads blocklist and settings from chrome.storage.sync.
    */
   async function checkAndEnforce() {
-    const currentUrl = window.location.href;
     const domain = getCurrentDomain();
 
     if (!domain) return;
-
-    // Avoid redundant checks for the same URL
-    if (currentUrl === lastCheckedUrl && overlayHost) return;
-    lastCheckedUrl = currentUrl;
 
     try {
       const result = await chrome.storage.sync.get(['blocklist', 'settings']);
       const blocklist = result.blocklist || [];
       const settings = result.settings || { blockingEnabled: true };
 
-      const shouldBlock = settings.blockingEnabled && blocklist.includes(domain);
+      const shouldBlock = settings.blockingEnabled && isDomainBlocked(domain, blocklist);
 
       if (shouldBlock && !isBlocked) {
         injectOverlay(domain);
@@ -360,7 +375,6 @@
    */
   function removeOverlay() {
     isBlocked = false;
-    lastCheckedUrl = '';
 
     const existing = document.getElementById(OVERLAY_HOST_ID);
     if (existing) {
@@ -390,8 +404,6 @@
     const observer = new MutationObserver(() => {
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        // URL changed — re-evaluate blocking
-        lastCheckedUrl = ''; // Force re-check
         checkAndEnforce();
       }
     });
@@ -430,7 +442,6 @@
       originalPushState.apply(this, args);
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        lastCheckedUrl = '';
         checkAndEnforce();
       }
     };
@@ -439,7 +450,6 @@
       originalReplaceState.apply(this, args);
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        lastCheckedUrl = '';
         checkAndEnforce();
       }
     };
@@ -448,7 +458,6 @@
     window.addEventListener('popstate', () => {
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        lastCheckedUrl = '';
         checkAndEnforce();
       }
     });
@@ -464,7 +473,6 @@
    */
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === 'BLOCKLIST_UPDATE') {
-      lastCheckedUrl = ''; // Force re-check
       checkAndEnforce();
     }
   });

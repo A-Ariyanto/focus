@@ -150,13 +150,16 @@ export class StorageAdapter {
 
   /**
    * Check if a domain is on the blocklist.
+   * Supports subdomain matching: "m.youtube.com" matches "youtube.com".
    * @param {string} domain
    * @returns {Promise<boolean>}
    */
   static async isBlocked(domain) {
     const normalized = domain.toLowerCase().replace(/^www\./, '');
     const blocklist = await StorageAdapter.getBlocklist();
-    return blocklist.includes(normalized);
+    return blocklist.some(
+      (blocked) => normalized === blocked || normalized.endsWith('.' + blocked)
+    );
   }
 
   // ===========================================================================
