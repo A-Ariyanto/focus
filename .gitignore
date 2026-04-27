@@ -7,20 +7,6 @@
 *.p12
 *.pfx
 
-# API keys and credentials
-*secret*
-*credentials*
-config/secrets.json
-firebase-config.json
-
-# Firebase
-.firebase/
-.firebaserc
-firebase-debug.log
-firestore-debug.log
-database-rules.json
-firestore.rules
-
 # Node modules
 node_modules/
 npm-debug.log*
