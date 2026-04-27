@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Focus — Digital Wellbeing",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Track your web usage and block distracting websites.",
   "permissions": [
     "storage",
     "tabs",
-    "idle"
+    "idle",
+    "webNavigation"
   ],
   "background": {
     "service_worker": "background.js"
@@ -22,9 +23,16 @@
       "run_at": "document_start"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "matches": ["<all_urls>"],
+      "resources": ["blocked.html"]
+    }
+  ],
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   }
 }
+

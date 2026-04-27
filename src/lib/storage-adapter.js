@@ -4,8 +4,8 @@
  * Decouples all UI and background code from raw chrome.storage API calls.
  *
  * Storage strategy:
- *   - chrome.storage.local  → Usage stats (heavy data, 5 MB quota)
- *   - chrome.storage.sync   → Settings & blocklist (100 KB quota, syncs across devices)
+ *   - chrome.storage.local  → Usage stats + blocklist (10 MB quota, fast)
+ *   - chrome.storage.sync   → Settings only (100 KB quota, syncs across devices)
  *
  * Key format:
  *   - Usage data: "usage_YYYY-MM-DD" → { domain: ms, ... }
@@ -111,7 +111,7 @@ export class StorageAdapter {
   }
 
   // ===========================================================================
-  // Blocklist (chrome.storage.sync)
+  // Blocklist (chrome.storage.local)
   // ===========================================================================
 
   /**
@@ -119,7 +119,7 @@ export class StorageAdapter {
    * @returns {Promise<string[]>} Array of blocked domains
    */
   static async getBlocklist() {
-    const result = await chrome.storage.sync.get('blocklist');
+    const result = await chrome.storage.local.get('blocklist');
     return result.blocklist || [];
   }
 
@@ -133,7 +133,7 @@ export class StorageAdapter {
 
     if (!blocklist.includes(normalized)) {
       blocklist.push(normalized);
-      await chrome.storage.sync.set({ blocklist });
+      await chrome.storage.local.set({ blocklist });
     }
   }
 
@@ -145,7 +145,7 @@ export class StorageAdapter {
     const normalized = domain.toLowerCase().replace(/^www\./, '');
     const blocklist = await StorageAdapter.getBlocklist();
     const updated = blocklist.filter((d) => d !== normalized);
-    await chrome.storage.sync.set({ blocklist: updated });
+    await chrome.storage.local.set({ blocklist: updated });
   }
 
   /**

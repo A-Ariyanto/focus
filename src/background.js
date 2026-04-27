@@ -321,46 +321,149 @@ chrome.windows.onFocusChanged.addListener(onWindowFocusChanged);
 chrome.idle.onStateChanged.addListener(onIdleStateChanged);
 
 // =============================================================================
-// Blocklist Update Relay
+// Website Blocking — webNavigation Interception
 // =============================================================================
 
+const BLOCKED_PAGE_URL = chrome.runtime.getURL('blocked.html');
+const INTERNAL_BLOCK_PREFIXES = ['chrome://', 'chrome-extension://', 'edge://', 'about:', 'devtools://'];
+
 /**
- * Broadcast BLOCKLIST_UPDATE to all tabs so content scripts re-evaluate
- * blocking state in real time.
+ * Check if a domain matches any entry in the blocklist.
+ * Supports subdomain matching: "m.youtube.com" matches "youtube.com".
+ * @param {string} domain
+ * @param {string[]} blocklist
+ * @returns {boolean}
  */
-async function broadcastToContentScripts() {
-  try {
-    const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
-      if (tab.id) {
-        chrome.tabs.sendMessage(tab.id, { type: 'BLOCKLIST_UPDATE' }).catch(() => {
-          // Tab may not have a content script (e.g., chrome:// pages) — safe to ignore
-        });
-      }
+function isDomainBlocked(domain, blocklist) {
+  for (const blocked of blocklist) {
+    if (domain === blocked || domain.endsWith('.' + blocked)) {
+      return true;
     }
-  } catch (err) {
-    console.warn('[Focus] Failed to broadcast to content scripts:', err);
   }
+  return false;
 }
 
 /**
- * Listen for BLOCKLIST_UPDATE from the popup and relay to all content scripts.
+ * Intercept ALL navigations before the page loads.
+ * If the domain is in the blocklist and blocking is enabled,
+ * redirect the tab to blocked.html — the blocked page never even loads.
+ */
+chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
+  // Only handle top-level navigations (not iframes)
+  if (details.frameId !== 0) return;
+
+  const url = details.url;
+
+  // Skip internal URLs and our own blocked page
+  if (!url || !url.startsWith('http')) return;
+  if (url.startsWith(BLOCKED_PAGE_URL)) return;
+
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    if (!hostname) return;
+
+    const [blocklistResult, settingsResult] = await Promise.all([
+      chrome.storage.local.get('blocklist'),
+      chrome.storage.sync.get('settings'),
+    ]);
+
+    const blocklist = blocklistResult.blocklist || [];
+    const settings = settingsResult.settings || { blockingEnabled: true };
+
+    if (settings.blockingEnabled && isDomainBlocked(hostname, blocklist)) {
+      const redirectUrl = BLOCKED_PAGE_URL + '?url=' + encodeURIComponent(url);
+      chrome.tabs.update(details.tabId, { url: redirectUrl });
+    }
+  } catch (err) {
+    console.warn('[Focus] Navigation interception error:', err);
+  }
+});
+
+/**
+ * Scan ALL open tabs and block/unblock them based on the current blocklist.
+ * Called whenever the blocklist or settings change.
+ *
+ * - If a tab shows a non-blocked site → do nothing
+ * - If a tab shows a blocked site → redirect to blocked.html
+ * - If a tab shows blocked.html for a now-unblocked site → redirect back
+ */
+async function blockActiveTabs() {
+  try {
+    const [tabs, blocklistResult, settingsResult] = await Promise.all([
+      chrome.tabs.query({}),
+      chrome.storage.local.get('blocklist'),
+      chrome.storage.sync.get('settings'),
+    ]);
+
+    const blocklist = blocklistResult.blocklist || [];
+    const settings = settingsResult.settings || { blockingEnabled: true };
+
+    for (const tab of tabs) {
+      if (!tab.url || !tab.id) continue;
+
+      // Case 1: Tab is showing blocked.html — check if it should be unblocked
+      if (tab.url.startsWith(BLOCKED_PAGE_URL)) {
+        try {
+          const params = new URL(tab.url).searchParams;
+          const originalUrl = params.get('url');
+          if (!originalUrl) continue;
+
+          const decoded = decodeURIComponent(originalUrl);
+          const hostname = new URL(decoded).hostname.replace(/^www\./, '').toLowerCase();
+
+          // If site is no longer blocked OR blocking is disabled → unblock
+          if (!settings.blockingEnabled || !isDomainBlocked(hostname, blocklist)) {
+            chrome.tabs.update(tab.id, { url: decoded });
+          }
+        } catch {
+          // Invalid URL in params — ignore
+        }
+        continue;
+      }
+
+      // Case 2: Tab is showing a regular page — check if it should be blocked
+      if (!tab.url.startsWith('http')) continue;
+
+      try {
+        const hostname = new URL(tab.url).hostname.replace(/^www\./, '').toLowerCase();
+        if (settings.blockingEnabled && isDomainBlocked(hostname, blocklist)) {
+          const redirectUrl = BLOCKED_PAGE_URL + '?url=' + encodeURIComponent(tab.url);
+          chrome.tabs.update(tab.id, { url: redirectUrl });
+        }
+      } catch {
+        // Invalid URL — ignore
+      }
+    }
+  } catch (err) {
+    console.warn('[Focus] blockActiveTabs error:', err);
+  }
+}
+
+// =============================================================================
+// Blocklist Change Listeners
+// =============================================================================
+
+/**
+ * Listen for BLOCKLIST_UPDATE from the popup. Re-scan all tabs.
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'BLOCKLIST_UPDATE') {
-    broadcastToContentScripts();
+    blockActiveTabs();
     sendResponse({ status: 'ok' });
   }
   return false;
 });
 
 /**
- * Watch for storage changes to blocklist or settings.
- * Automatically broadcast to content scripts when they change
- * (handles cases where changes come from sync across devices).
+ * Watch for storage changes to blocklist (local) or settings (sync).
+ * Automatically re-scan all tabs.
  */
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'sync' && (changes.blocklist || changes.settings)) {
-    broadcastToContentScripts();
+  if (area === 'local' && changes.blocklist) {
+    blockActiveTabs();
+  }
+  if (area === 'sync' && changes.settings) {
+    blockActiveTabs();
   }
 });
+

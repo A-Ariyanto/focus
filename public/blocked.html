@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Blocked — Focus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    /* Ambient orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      animation: pulse 6s ease-in-out infinite;
+    }
+    .orb-violet {
+      width: 400px; height: 400px;
+      background: rgba(139, 92, 246, 0.25);
+      top: -100px; right: -100px;
+    }
+    .orb-cyan {
+      width: 350px; height: 350px;
+      background: rgba(6, 182, 212, 0.18);
+      bottom: -80px; left: -80px;
+      animation-delay: 3s;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Card */
+    .card {
+      position: relative;
+      max-width: 480px;
+      width: 90%;
+      padding: 48px 40px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      text-align: center;
+      animation: slideUp 0.5s ease-out 0.1s both;
+    }
+
+    /* Shield icon */
+    .shield {
+      width: 64px; height: 64px;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: center; justify-content: center;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2));
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .shield svg {
+      width: 32px; height: 32px;
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #a78bfa, #22d3ee);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .domain {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(148, 163, 184, 0.8);
+      margin-bottom: 32px;
+      word-break: break-all;
+    }
+    .domain strong {
+      color: rgba(248, 250, 252, 0.9);
+      font-weight: 600;
+    }
+
+    .divider {
+      width: 48px; height: 2px;
+      background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+      border-radius: 1px;
+      margin: 0 auto 28px;
+    }
+
+    .quote {
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.7;
+      color: rgba(226, 232, 240, 0.9);
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+
+    .author {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(148, 163, 184, 0.6);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 32px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(148, 163, 184, 0.7);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .pulse-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-violet"></div>
+  <div class="orb orb-cyan"></div>
+
+  <div class="card">
+    <div class="shield">
+      <svg viewBox="0 0 24 24" fill="none" stroke="url(#g)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <defs>
+          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#a78bfa"/>
+            <stop offset="100%" stop-color="#22d3ee"/>
+          </linearGradient>
+        </defs>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+
+    <h1 class="title">Stay Focused</h1>
+    <p class="domain" id="domain-text">This site is blocked</p>
+
+    <div class="divider"></div>
+
+    <p class="quote" id="quote-text"></p>
+    <p class="author" id="quote-author"></p>
+
+    <div class="badge">
+      <span class="pulse-dot"></span>
+      Focus Mode Active
+    </div>
+  </div>
+
+  <script>
+    const QUOTES = [
+      { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+      { text: "Focus on being productive instead of busy.", author: "Tim Ferriss" },
+      { text: "It is not enough to be busy. The question is: what are we busy about?", author: "Henry David Thoreau" },
+      { text: "Concentrate all your thoughts upon the work at hand.", author: "Alexander Graham Bell" },
+      { text: "The way to get started is to quit talking and begin doing.", author: "Walt Disney" },
+      { text: "Do the hard jobs first. The easy jobs will take care of themselves.", author: "Dale Carnegie" },
+      { text: "Action is the foundational key to all success.", author: "Pablo Picasso" },
+      { text: "You don't have to see the whole staircase, just take the first step.", author: "Martin Luther King Jr." },
+      { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+      { text: "Your future is created by what you do today, not tomorrow.", author: "Robert Kiyosaki" },
+      { text: "Discipline is the bridge between goals and accomplishment.", author: "Jim Rohn" },
+      { text: "Don't watch the clock; do what it does. Keep going.", author: "Sam Levenson" },
+    ];
+
+    // Parse query params
+    const params = new URLSearchParams(window.location.search);
+    const blockedUrl = params.get('url');
+
+    // Show domain
+    if (blockedUrl) {
+      try {
+        const hostname = new URL(decodeURIComponent(blockedUrl)).hostname.replace(/^www\./, '');
+        document.getElementById('domain-text').innerHTML =
+          '<strong>' + hostname + '</strong> is blocked';
+      } catch {
+        document.getElementById('domain-text').textContent = 'This site is blocked';
+      }
+    }
+
+    // Show random quote
+    const q = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+    document.getElementById('quote-text').textContent = '"' + q.text + '"';
+    document.getElementById('quote-author').textContent = '— ' + q.author;
+  </script>
+</body>
+</html>

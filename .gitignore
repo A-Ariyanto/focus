@@ -35,3 +35,5 @@ logs/
 tmp/
 temp/
 .cache/
+
+sample/

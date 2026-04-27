@@ -43,13 +43,12 @@ export default function Blocklist() {
   useEffect(() => {
     fetchData();
 
-    // Real-time sync
+    // Real-time sync — blocklist is in local, settings in sync
     const unsubscribe = StorageAdapter.onStorageChanged((changes, area) => {
-      if (area !== 'sync') return;
-      if (changes.blocklist) {
+      if (area === 'local' && changes.blocklist) {
         setBlocklist(changes.blocklist.newValue || []);
       }
-      if (changes.settings) {
+      if (area === 'sync' && changes.settings) {
         setSettings((prev) => ({ ...prev, ...(changes.settings.newValue || {}) }));
       }
     });
