@@ -29,8 +29,12 @@ const blockedUrl = params.get('url');
 if (blockedUrl) {
   try {
     const hostname = new URL(decodeURIComponent(blockedUrl)).hostname.replace(/^www\./, '');
-    document.getElementById('domain-text').innerHTML =
-      '<strong>' + hostname + '</strong> is blocked';
+    const domainText = document.getElementById('domain-text');
+    const strong = document.createElement('strong');
+    strong.textContent = hostname;
+    domainText.textContent = '';
+    domainText.appendChild(strong);
+    domainText.append(' is blocked');
   } catch {
     document.getElementById('domain-text').textContent = 'This site is blocked';
   }
