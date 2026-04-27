@@ -2,34 +2,41 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
-import { renameSync, mkdirSync, existsSync, rmSync } from 'fs';
+import { renameSync, mkdirSync, existsSync, rmSync, readFileSync, writeFileSync } from 'fs';
 
 /**
  * Vite plugin to fix HTML output paths for Chrome Extension structure.
- * Vite outputs `src/popup/index.html` → `dist/src/popup/index.html`.
- * We move it to `dist/popup/index.html` to match the manifest.
+ *
+ * Problem: Vite preserves the source directory structure, so
+ * `src/popup/index.html` → `dist/src/popup/index.html`.
+ * Chrome expects `popup/index.html` per the manifest.
+ *
+ * This plugin:
+ * 1. Moves the HTML to `dist/popup/index.html`
+ * 2. Fixes asset paths from `../../popup/assets/` to `./assets/`
+ * 3. Cleans up the empty `dist/src/` directory
  */
 function chromeExtensionHtmlFix() {
   return {
     name: 'chrome-extension-html-fix',
     closeBundle() {
-      const srcPopup = resolve(__dirname, 'dist/src/popup');
-      const destPopup = resolve(__dirname, 'dist/popup');
+      const srcHtml = resolve(__dirname, 'dist/src/popup/index.html');
+      const destDir = resolve(__dirname, 'dist/popup');
+      const destHtml = resolve(destDir, 'index.html');
 
-      if (existsSync(srcPopup)) {
-        // Ensure dest/popup exists (it may already contain assets/)
-        if (!existsSync(destPopup)) {
-          mkdirSync(destPopup, { recursive: true });
+      if (existsSync(srcHtml)) {
+        // Ensure dest directory exists
+        if (!existsSync(destDir)) {
+          mkdirSync(destDir, { recursive: true });
         }
 
-        // Move index.html from dist/src/popup/ to dist/popup/
-        const srcHtml = resolve(srcPopup, 'index.html');
-        const destHtml = resolve(destPopup, 'index.html');
-        if (existsSync(srcHtml)) {
-          renameSync(srcHtml, destHtml);
-        }
+        // Read and fix asset paths
+        let html = readFileSync(srcHtml, 'utf-8');
+        // Fix paths: ../../popup/assets/ → ./assets/
+        html = html.replace(/(?:\.\.\/)+popup\/assets\//g, './assets/');
+        writeFileSync(destHtml, html, 'utf-8');
 
-        // Clean up the empty dist/src directory
+        // Clean up dist/src/
         const distSrc = resolve(__dirname, 'dist/src');
         if (existsSync(distSrc)) {
           rmSync(distSrc, { recursive: true, force: true });
