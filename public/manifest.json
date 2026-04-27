@@ -18,7 +18,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content/blocker.js"],
+      "js": ["content/enforcer.js"],
       "run_at": "document_start"
     }
   ],

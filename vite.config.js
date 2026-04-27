@@ -64,12 +64,12 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, 'src/popup/index.html'),
         background: resolve(__dirname, 'src/background.js'),
-        blocker: resolve(__dirname, 'src/content/blocker.js'),
+        enforcer: resolve(__dirname, 'src/content/enforcer.js'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'background') return 'background.js';
-          if (chunkInfo.name === 'blocker') return 'content/blocker.js';
+          if (chunkInfo.name === 'enforcer') return 'content/enforcer.js';
           return 'popup/assets/[name]-[hash].js';
         },
         chunkFileNames: 'popup/assets/[name]-[hash].js',

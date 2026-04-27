@@ -319,3 +319,48 @@ chrome.windows.onFocusChanged.addListener(onWindowFocusChanged);
 
 // Idle events
 chrome.idle.onStateChanged.addListener(onIdleStateChanged);
+
+// =============================================================================
+// Blocklist Update Relay
+// =============================================================================
+
+/**
+ * Broadcast BLOCKLIST_UPDATE to all tabs so content scripts re-evaluate
+ * blocking state in real time.
+ */
+async function broadcastToContentScripts() {
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id) {
+        chrome.tabs.sendMessage(tab.id, { type: 'BLOCKLIST_UPDATE' }).catch(() => {
+          // Tab may not have a content script (e.g., chrome:// pages) — safe to ignore
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('[Focus] Failed to broadcast to content scripts:', err);
+  }
+}
+
+/**
+ * Listen for BLOCKLIST_UPDATE from the popup and relay to all content scripts.
+ */
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'BLOCKLIST_UPDATE') {
+    broadcastToContentScripts();
+    sendResponse({ status: 'ok' });
+  }
+  return false;
+});
+
+/**
+ * Watch for storage changes to blocklist or settings.
+ * Automatically broadcast to content scripts when they change
+ * (handles cases where changes come from sync across devices).
+ */
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'sync' && (changes.blocklist || changes.settings)) {
+    broadcastToContentScripts();
+  }
+});

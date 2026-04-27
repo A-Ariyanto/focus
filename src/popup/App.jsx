@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import Dashboard from './components/Dashboard';
+import Blocklist from './components/Blocklist';
 
 /**
  * App — Root component for the Focus popup.
  *
  * Views:
  *   - Dashboard: Today's screen time + top 5 domains
- *   - Blocklist: Site blocker management (Stage 2)
+ *   - Blocklist: Site blocker management (add/remove domains, global toggle)
  */
 export default function App() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -54,22 +55,9 @@ export default function App() {
         {activeView === 'dashboard' ? (
           <Dashboard />
         ) : (
-          <BlocklistPlaceholder />
+          <Blocklist />
         )}
       </main>
-    </div>
-  );
-}
-
-/** Placeholder for Blocklist view — will be replaced in Stage 2 */
-function BlocklistPlaceholder() {
-  return (
-    <div className="rounded-xl bg-white/5 backdrop-blur-md border border-white/10 p-6 text-center">
-      <div className="text-3xl mb-3">🛡️</div>
-      <h2 className="text-sm font-semibold text-slate-200 mb-1">Site Blocker</h2>
-      <p className="text-xs text-slate-400">
-        Manage your blocked sites. Coming in Stage 2.
-      </p>
     </div>
   );
 }
