@@ -21,7 +21,7 @@
   "web_accessible_resources": [
     {
       "matches": ["<all_urls>"],
-      "resources": ["blocked.html", "blocked.css", "blocked.js"]
+      "resources": ["blocked.html", "popup/assets/*"]
     }
   ],
   "content_security_policy": {

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
-import { renameSync, mkdirSync, existsSync, rmSync, readFileSync, writeFileSync } from 'fs';
+import { mkdirSync, existsSync, rmSync, readFileSync, writeFileSync } from 'fs';
 
 /**
  * Vite plugin to fix HTML output paths for Chrome Extension structure.
@@ -12,35 +12,47 @@ import { renameSync, mkdirSync, existsSync, rmSync, readFileSync, writeFileSync 
  * Chrome expects `popup/index.html` per the manifest.
  *
  * This plugin:
- * 1. Moves the HTML to `dist/popup/index.html`
- * 2. Fixes asset paths from `../../popup/assets/` to `./assets/`
- * 3. Cleans up the empty `dist/src/` directory
+ * 1. Moves built HTML files to extension-friendly output paths
+ * 2. Fixes asset paths from nested source output to stable relative paths
+ * 3. Cleans up the temporary `dist/src/` directory
  */
 function chromeExtensionHtmlFix() {
   return {
     name: 'chrome-extension-html-fix',
     closeBundle() {
-      const srcHtml = resolve(__dirname, 'dist/src/popup/index.html');
-      const destDir = resolve(__dirname, 'dist/popup');
-      const destHtml = resolve(destDir, 'index.html');
+      const htmlMoves = [
+        {
+          srcHtml: resolve(__dirname, 'dist/src/popup/index.html'),
+          destDir: resolve(__dirname, 'dist/popup'),
+          destHtml: resolve(__dirname, 'dist/popup/index.html'),
+          assetPrefix: './assets/',
+        },
+        {
+          srcHtml: resolve(__dirname, 'dist/src/blocked/index.html'),
+          destDir: resolve(__dirname, 'dist'),
+          destHtml: resolve(__dirname, 'dist/blocked.html'),
+          assetPrefix: './popup/assets/',
+        },
+      ];
 
-      if (existsSync(srcHtml)) {
-        // Ensure dest directory exists
-        if (!existsSync(destDir)) {
-          mkdirSync(destDir, { recursive: true });
+      for (const move of htmlMoves) {
+        if (!existsSync(move.srcHtml)) continue;
+
+        // Ensure destination directory exists
+        if (!existsSync(move.destDir)) {
+          mkdirSync(move.destDir, { recursive: true });
         }
 
         // Read and fix asset paths
-        let html = readFileSync(srcHtml, 'utf-8');
-        // Fix paths: ../../popup/assets/ → ./assets/
-        html = html.replace(/(?:\.\.\/)+popup\/assets\//g, './assets/');
-        writeFileSync(destHtml, html, 'utf-8');
+        let html = readFileSync(move.srcHtml, 'utf-8');
+        html = html.replace(/(?:\.\.\/)+popup\/assets\//g, move.assetPrefix);
+        writeFileSync(move.destHtml, html, 'utf-8');
+      }
 
-        // Clean up dist/src/
-        const distSrc = resolve(__dirname, 'dist/src');
-        if (existsSync(distSrc)) {
-          rmSync(distSrc, { recursive: true, force: true });
-        }
+      // Clean up dist/src/
+      const distSrc = resolve(__dirname, 'dist/src');
+      if (existsSync(distSrc)) {
+        rmSync(distSrc, { recursive: true, force: true });
       }
     },
   };
@@ -63,6 +75,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'src/popup/index.html'),
+        blocked: resolve(__dirname, 'src/blocked/index.html'),
         background: resolve(__dirname, 'src/background.js'),
         enforcer: resolve(__dirname, 'src/content/enforcer.js'),
       },
