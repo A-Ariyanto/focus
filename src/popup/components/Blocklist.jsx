@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { StorageAdapter } from '../../lib/storage-adapter';
+import { useState, useEffect, useCallback } from "react";
+import { StorageAdapter } from "../../lib/storage-adapter";
 
 /**
  * Blocklist — Management UI for the site blocker.
@@ -13,7 +13,7 @@ import { StorageAdapter } from '../../lib/storage-adapter';
 export default function Blocklist() {
   const [blocklist, setBlocklist] = useState([]);
   const [settings, setSettings] = useState({ blockingEnabled: true });
-  const [newDomain, setNewDomain] = useState('');
+  const [newDomain, setNewDomain] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [addError, setAddError] = useState(null);
@@ -33,8 +33,8 @@ export default function Blocklist() {
       setSettings(sets);
       setError(null);
     } catch (err) {
-      console.error('[Focus] Failed to load blocklist:', err);
-      setError('Unable to load blocklist.');
+      console.error("[Focus] Failed to load blocklist:", err);
+      setError("Unable to load blocklist.");
     } finally {
       setIsLoading(false);
     }
@@ -45,11 +45,14 @@ export default function Blocklist() {
 
     // Real-time sync — blocklist is in local, settings in sync
     const unsubscribe = StorageAdapter.onStorageChanged((changes, area) => {
-      if (area === 'local' && changes.blocklist) {
+      if (area === "local" && changes.blocklist) {
         setBlocklist(changes.blocklist.newValue || []);
       }
-      if (area === 'sync' && changes.settings) {
-        setSettings((prev) => ({ ...prev, ...(changes.settings.newValue || {}) }));
+      if (area === "sync" && changes.settings) {
+        setSettings((prev) => ({
+          ...prev,
+          ...(changes.settings.newValue || {}),
+        }));
       }
     });
 
@@ -70,7 +73,7 @@ export default function Blocklist() {
     } catch (err) {
       // Revert on failure
       setSettings((prev) => ({ ...prev, blockingEnabled: !newValue }));
-      console.error('[Focus] Failed to toggle blocking:', err);
+      console.error("[Focus] Failed to toggle blocking:", err);
     }
   };
 
@@ -80,22 +83,22 @@ export default function Blocklist() {
 
     const domain = normalizeDomain(newDomain.trim());
     if (!domain) {
-      setAddError('Please enter a valid domain.');
+      setAddError("Please enter a valid domain.");
       return;
     }
 
     if (blocklist.includes(domain)) {
-      setAddError('This domain is already blocked.');
+      setAddError("This domain is already blocked.");
       return;
     }
 
     try {
       await StorageAdapter.addToBlocklist(domain);
-      setNewDomain('');
+      setNewDomain("");
       broadcastBlocklistUpdate();
     } catch (err) {
-      console.error('[Focus] Failed to add domain:', err);
-      setAddError('Failed to add domain.');
+      console.error("[Focus] Failed to add domain:", err);
+      setAddError("Failed to add domain.");
     }
   };
 
@@ -107,7 +110,7 @@ export default function Blocklist() {
         await StorageAdapter.removeFromBlocklist(domain);
         broadcastBlocklistUpdate();
       } catch (err) {
-        console.error('[Focus] Failed to remove domain:', err);
+        console.error("[Focus] Failed to remove domain:", err);
       } finally {
         setRemovingDomain(null);
       }
@@ -121,16 +124,18 @@ export default function Blocklist() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-6 h-6 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin mb-3" />
-        <p className="text-xs text-slate-400">Loading blocklist...</p>
+        <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin mb-3 dark:border-violet-400/30 dark:border-t-violet-400" />
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Loading blocklist...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-center">
-        <p className="text-xs text-red-400">{error}</p>
+      <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-center dark:bg-red-500/10 dark:border-red-500/20">
+        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
       </div>
     );
   }
@@ -169,21 +174,21 @@ export default function Blocklist() {
 
 function GlobalToggle({ enabled, onToggle }) {
   return (
-    <div className="relative rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-4 overflow-hidden group">
+    <div className="relative rounded-2xl bg-white border border-slate-100 shadow-sm p-4 overflow-hidden group dark:bg-[#1e2533] dark:border-slate-800">
       {/* Ambient glow */}
       <div
         className={`absolute -top-10 -right-10 w-28 h-28 rounded-full blur-3xl transition-all duration-700 ${
-          enabled ? 'bg-emerald-500/20' : 'bg-slate-500/10'
+          enabled ? "bg-emerald-500/20" : "bg-slate-500/10"
         }`}
       />
 
       <div className="relative z-10 flex items-center justify-between">
         <div>
-          <p className="text-[13px] font-semibold text-slate-200">
+          <p className="text-[13px] font-semibold text-slate-900 dark:text-white">
             Site Blocking
           </p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            {enabled ? 'Actively blocking sites' : 'Blocking is paused'}
+          <p className="text-[11px] text-slate-500 mt-0.5 dark:text-slate-400">
+            {enabled ? "Actively blocking sites" : "Blocking is paused"}
           </p>
         </div>
 
@@ -192,7 +197,7 @@ function GlobalToggle({ enabled, onToggle }) {
           id="toggle-blocking"
           onClick={onToggle}
           className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/50 ${
-            enabled ? 'bg-emerald-500' : 'bg-slate-600'
+            enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-slate-600"
           }`}
           role="switch"
           aria-checked={enabled}
@@ -200,7 +205,7 @@ function GlobalToggle({ enabled, onToggle }) {
         >
           <span
             className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${
-              enabled ? 'translate-x-5' : 'translate-x-0'
+              enabled ? "translate-x-5" : "translate-x-0"
             }`}
           />
         </button>
@@ -211,8 +216,8 @@ function GlobalToggle({ enabled, onToggle }) {
 
 function AddDomainForm({ value, onChange, onSubmit, error, disabled }) {
   return (
-    <div className="rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-4">
-      <h2 className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-3">
+    <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4 dark:bg-[#1e2533] dark:border-slate-800">
+      <h2 className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-3 dark:text-slate-400">
         Add Site
       </h2>
 
@@ -224,10 +229,10 @@ function AddDomainForm({ value, onChange, onSubmit, error, disabled }) {
           onChange={(e) => onChange(e.target.value)}
           placeholder="e.g. facebook.com"
           disabled={disabled}
-          className={`flex-1 px-3 py-2 rounded-lg text-xs bg-white/5 border border-white/10 text-white placeholder-slate-500 outline-none transition-all duration-200 ${
+          className={`flex-1 px-3 py-2 rounded-lg text-xs bg-white border border-slate-200 text-slate-900 placeholder-slate-400 outline-none transition-all duration-200 dark:bg-[#181f2c] dark:border-slate-700 dark:text-white dark:placeholder-slate-500 ${
             disabled
-              ? 'opacity-40 cursor-not-allowed'
-              : 'focus:border-violet-400/50 focus:ring-1 focus:ring-violet-400/25'
+              ? "opacity-40 cursor-not-allowed"
+              : "focus:border-violet-400/50 focus:ring-1 focus:ring-violet-400/25"
           }`}
         />
         <button
@@ -236,8 +241,8 @@ function AddDomainForm({ value, onChange, onSubmit, error, disabled }) {
           disabled={disabled || !value.trim()}
           className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
             disabled || !value.trim()
-              ? 'bg-white/5 text-slate-500 cursor-not-allowed'
-              : 'bg-gradient-to-r from-violet-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-violet-500/20 active:scale-95'
+              ? "bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-white/5 dark:text-slate-500"
+              : "bg-gradient-to-r from-violet-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-violet-500/20 active:scale-95"
           }`}
         >
           Block
@@ -245,7 +250,9 @@ function AddDomainForm({ value, onChange, onSubmit, error, disabled }) {
       </form>
 
       {error && (
-        <p className="text-[10px] text-red-400 mt-2 pl-1">{error}</p>
+        <p className="text-[10px] text-red-600 mt-2 pl-1 dark:text-red-400">
+          {error}
+        </p>
       )}
     </div>
   );
@@ -253,19 +260,23 @@ function AddDomainForm({ value, onChange, onSubmit, error, disabled }) {
 
 function DomainList({ domains, onRemove, removingDomain, disabled }) {
   return (
-    <div className="rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-4">
-      <h2 className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-3">
+    <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4 dark:bg-[#1e2533] dark:border-slate-800">
+      <h2 className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-3 dark:text-slate-400">
         Blocked Sites
         {domains.length > 0 && (
-          <span className="ml-1.5 text-slate-500">({domains.length})</span>
+          <span className="ml-1.5 text-slate-400 dark:text-slate-500">
+            ({domains.length})
+          </span>
         )}
       </h2>
 
       {domains.length === 0 ? (
         <div className="text-center py-6">
           <div className="text-2xl mb-2 opacity-50">🛡️</div>
-          <p className="text-xs text-slate-500">No sites blocked yet.</p>
-          <p className="text-[10px] text-slate-600 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            No sites blocked yet.
+          </p>
+          <p className="text-[10px] text-slate-400 mt-1 dark:text-slate-500">
             Add a domain above to start blocking.
           </p>
         </div>
@@ -276,18 +287,20 @@ function DomainList({ domains, onRemove, removingDomain, disabled }) {
               key={domain}
               className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all duration-200 ${
                 removingDomain === domain
-                  ? 'opacity-0 -translate-x-4 scale-95'
-                  : 'opacity-100 hover:bg-white/5'
-              } ${disabled ? 'opacity-40' : ''}`}
+                  ? "opacity-0 -translate-x-4 scale-95"
+                  : "opacity-100 hover:bg-slate-50 dark:hover:bg-white/5"
+              } ${disabled ? "opacity-40" : ""}`}
             >
               <div className="flex items-center gap-2 min-w-0">
                 <img
                   src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
                   alt=""
                   className="w-4 h-4 rounded-sm flex-shrink-0"
-                  onError={(e) => { e.target.style.display = 'none'; }}
+                  onError={(e) => {
+                    e.target.style.display = "none";
+                  }}
                 />
-                <span className="text-xs text-slate-200 truncate">
+                <span className="text-xs text-slate-700 truncate dark:text-slate-200">
                   {domain}
                 </span>
               </div>
@@ -297,8 +310,8 @@ function DomainList({ domains, onRemove, removingDomain, disabled }) {
                 disabled={disabled}
                 className={`text-[10px] font-medium px-2 py-1 rounded-md transition-all duration-200 ${
                   disabled
-                    ? 'text-slate-600 cursor-not-allowed'
-                    : 'text-slate-500 hover:text-red-400 hover:bg-red-400/10 active:scale-95'
+                    ? "text-slate-300 cursor-not-allowed dark:text-slate-600"
+                    : "text-slate-500 hover:text-red-500 hover:bg-red-50 active:scale-95 dark:text-slate-400 dark:hover:text-red-400 dark:hover:bg-red-400/10"
                 }`}
                 aria-label={`Remove ${domain} from blocklist`}
               >
@@ -327,16 +340,16 @@ function normalizeDomain(input) {
   let domain = input;
 
   // Strip protocol if present
-  domain = domain.replace(/^https?:\/\//, '');
+  domain = domain.replace(/^https?:\/\//, "");
   // Strip path, query, hash
-  domain = domain.split('/')[0].split('?')[0].split('#')[0];
+  domain = domain.split("/")[0].split("?")[0].split("#")[0];
   // Strip www.
-  domain = domain.replace(/^www\./, '');
+  domain = domain.replace(/^www\./, "");
   // Lowercase
   domain = domain.toLowerCase();
 
   // Basic validation: must have at least one dot
-  if (!domain.includes('.') || domain.length < 3) return null;
+  if (!domain.includes(".") || domain.length < 3) return null;
 
   return domain;
 }
@@ -349,7 +362,7 @@ function normalizeDomain(input) {
  */
 async function broadcastBlocklistUpdate() {
   try {
-    await chrome.runtime.sendMessage({ type: 'BLOCKLIST_UPDATE' });
+    await chrome.runtime.sendMessage({ type: "BLOCKLIST_UPDATE" });
   } catch {
     // Background SW may be asleep — this is fine.
     // Content scripts will pick up the change via chrome.storage.onChanged.
