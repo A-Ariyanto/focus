@@ -1,4 +1,4 @@
-import { useUsageData } from '../hooks/useUsageData';
+import { useUsageData } from "../hooks/useUsageData";
 
 // =============================================================================
 // Helpers
@@ -10,7 +10,7 @@ import { useUsageData } from '../hooks/useUsageData';
  * @returns {string} e.g., "2h 15m", "45m", "30s"
  */
 function formatTime(ms) {
-  if (ms < 1000) return '0s';
+  if (ms < 1000) return "0s";
 
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -33,11 +33,11 @@ function formatTime(ms) {
  * @returns {{ from: string, to: string }}
  */
 const RANK_GRADIENTS = [
-  { from: 'from-violet-500', to: 'to-fuchsia-500' },
-  { from: 'from-cyan-500', to: 'to-blue-500' },
-  { from: 'from-emerald-500', to: 'to-teal-500' },
-  { from: 'from-amber-500', to: 'to-orange-500' },
-  { from: 'from-rose-500', to: 'to-pink-500' },
+  { from: "from-violet-500", to: "to-fuchsia-500" },
+  { from: "from-cyan-500", to: "to-blue-500" },
+  { from: "from-emerald-500", to: "to-teal-500" },
+  { from: "from-amber-500", to: "to-orange-500" },
+  { from: "from-rose-500", to: "to-pink-500" },
 ];
 
 // =============================================================================
@@ -62,9 +62,7 @@ function TotalTimeCard({ totalMs }) {
             Today's Screen Time
           </p>
           <p className="text-3xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
-              {timeStr}
-            </span>
+            <span className="text-white">{timeStr}</span>
           </p>
         </div>
 
@@ -74,7 +72,9 @@ function TotalTimeCard({ totalMs }) {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
           </div>
-          <span className="text-[10px] text-emerald-400 font-medium">Tracking</span>
+          <span className="text-[10px] text-emerald-400 font-medium">
+            Tracking
+          </span>
         </div>
       </div>
     </div>
@@ -99,7 +99,7 @@ function DomainRow({ domain, ms, maxMs, index }) {
             alt=""
             className="w-4 h-4 rounded-sm flex-shrink-0"
             onError={(e) => {
-              e.target.style.display = 'none';
+              e.target.style.display = "none";
             }}
           />
           <span className="text-[13px] font-medium text-slate-200 truncate">
