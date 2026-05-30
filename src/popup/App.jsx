@@ -17,14 +17,14 @@ export default function App() {
     <div className="relative w-[360px] min-h-[480px] overflow-hidden bg-slate-50 text-slate-900 dark:bg-[#121824] dark:text-white font-[Inter,system-ui,sans-serif] transition-colors">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-16 -right-14 h-56 w-56 rounded-full bg-blue-500/25 blur-3xl dark:bg-blue-500/30"
+        className="pointer-events-none absolute -top-16 -right-14 z-0 h-56 w-56 rounded-full bg-blue-500/25 blur-3xl dark:bg-blue-500/30"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-6 -right-6 h-32 w-32 rounded-full bg-sky-400/30 blur-2xl dark:bg-sky-400/35"
+        className="pointer-events-none absolute -top-6 -right-6 z-0 h-32 w-32 rounded-full bg-sky-400/30 blur-2xl dark:bg-sky-400/35"
       />
       {/* Header */}
-      <header className="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
+      <header className="relative z-10 px-5 pt-5 pb-3 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
             Focus
@@ -38,7 +38,7 @@ export default function App() {
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="flex gap-1 px-5 mb-4">
+      <nav className="relative z-10 flex gap-1 px-5 mb-4">
         <button
           id="nav-dashboard"
           onClick={() => setActiveView("dashboard")}
@@ -64,7 +64,7 @@ export default function App() {
       </nav>
 
       {/* Content Area */}
-      <main className="px-5 pb-5">
+      <main className="relative z-10 px-5 pb-5">
         {activeView === "dashboard" ? <Dashboard /> : <Blocklist />}
       </main>
     </div>
