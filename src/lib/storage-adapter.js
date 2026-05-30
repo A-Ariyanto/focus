@@ -22,6 +22,120 @@ const DEFAULT_SETTINGS = {
 };
 
 // =============================================================================
+// Dev Storage Shim (for Vite preview)
+// =============================================================================
+
+const hasChromeStorage =
+  typeof chrome !== 'undefined' &&
+  chrome?.storage?.local &&
+  chrome?.storage?.sync &&
+  chrome?.storage?.onChanged;
+
+let memoryStorage = null;
+const memoryStore = {
+  local: {},
+  sync: {},
+};
+const memoryListeners = new Set();
+
+function getStorage() {
+  if (hasChromeStorage) return chrome.storage;
+
+  if (!memoryStorage) {
+    memoryStorage = createMemoryStorage();
+  }
+
+  return memoryStorage;
+}
+
+function createMemoryStorage() {
+  return {
+    local: createMemoryArea('local'),
+    sync: createMemoryArea('sync'),
+    onChanged: {
+      addListener: (listener) => memoryListeners.add(listener),
+      removeListener: (listener) => memoryListeners.delete(listener),
+    },
+  };
+}
+
+function createMemoryArea(area) {
+  return {
+    get: async (keys) => {
+      const store = memoryStore[area];
+
+      if (keys == null) {
+        return { ...store };
+      }
+
+      if (typeof keys === 'string') {
+        return { [keys]: store[keys] };
+      }
+
+      if (Array.isArray(keys)) {
+        const result = {};
+        for (const key of keys) {
+          result[key] = store[key];
+        }
+        return result;
+      }
+
+      if (typeof keys === 'object') {
+        const result = {};
+        for (const [key, defaultValue] of Object.entries(keys)) {
+          result[key] = store[key] ?? defaultValue;
+        }
+        return result;
+      }
+
+      return {};
+    },
+
+    set: async (items) => {
+      const store = memoryStore[area];
+      const changes = {};
+
+      for (const [key, newValue] of Object.entries(items)) {
+        const oldValue = store[key];
+        store[key] = newValue;
+
+        if (!Object.is(oldValue, newValue)) {
+          changes[key] = { oldValue, newValue };
+        }
+      }
+
+      if (Object.keys(changes).length > 0) {
+        emitChanges(area, changes);
+      }
+    },
+
+    remove: async (keys) => {
+      const store = memoryStore[area];
+      const list = Array.isArray(keys) ? keys : [keys];
+      const changes = {};
+
+      for (const key of list) {
+        if (Object.prototype.hasOwnProperty.call(store, key)) {
+          const oldValue = store[key];
+          delete store[key];
+          changes[key] = { oldValue, newValue: undefined };
+        }
+      }
+
+      if (Object.keys(changes).length > 0) {
+        emitChanges(area, changes);
+      }
+    },
+  };
+}
+
+function emitChanges(area, changes) {
+  for (const listener of memoryListeners) {
+    listener(changes, area);
+  }
+}
+
+// =============================================================================
 // StorageAdapter Class
 // =============================================================================
 
@@ -64,7 +178,7 @@ export class StorageAdapter {
    */
   static async getTodayUsage() {
     const key = StorageAdapter.getTodayKey();
-    const result = await chrome.storage.local.get(key);
+    const result = await getStorage().local.get(key);
     return result[key] || {};
   }
 
@@ -75,7 +189,7 @@ export class StorageAdapter {
    */
   static async getUsageForDate(date) {
     const key = StorageAdapter.getKeyForDate(date);
-    const result = await chrome.storage.local.get(key);
+    const result = await getStorage().local.get(key);
     return result[key] || {};
   }
 
@@ -87,11 +201,11 @@ export class StorageAdapter {
    */
   static async addUsage(domain, ms) {
     const key = StorageAdapter.getTodayKey();
-    const result = await chrome.storage.local.get(key);
+    const result = await getStorage().local.get(key);
     const existing = result[key] || {};
 
     existing[domain] = (existing[domain] || 0) + ms;
-    await chrome.storage.local.set({ [key]: existing });
+    await getStorage().local.set({ [key]: existing });
   }
 
   /**
@@ -100,14 +214,14 @@ export class StorageAdapter {
    */
   static async mergeUsage(usageMap) {
     const key = StorageAdapter.getTodayKey();
-    const result = await chrome.storage.local.get(key);
+    const result = await getStorage().local.get(key);
     const existing = result[key] || {};
 
     for (const [domain, ms] of Object.entries(usageMap)) {
       existing[domain] = (existing[domain] || 0) + ms;
     }
 
-    await chrome.storage.local.set({ [key]: existing });
+    await getStorage().local.set({ [key]: existing });
   }
 
   // ===========================================================================
@@ -119,7 +233,7 @@ export class StorageAdapter {
    * @returns {Promise<string[]>} Array of blocked domains
    */
   static async getBlocklist() {
-    const result = await chrome.storage.local.get('blocklist');
+    const result = await getStorage().local.get('blocklist');
     return result.blocklist || [];
   }
 
@@ -133,7 +247,7 @@ export class StorageAdapter {
 
     if (!blocklist.includes(normalized)) {
       blocklist.push(normalized);
-      await chrome.storage.local.set({ blocklist });
+      await getStorage().local.set({ blocklist });
     }
   }
 
@@ -145,7 +259,7 @@ export class StorageAdapter {
     const normalized = domain.toLowerCase().replace(/^www\./, '');
     const blocklist = await StorageAdapter.getBlocklist();
     const updated = blocklist.filter((d) => d !== normalized);
-    await chrome.storage.local.set({ blocklist: updated });
+    await getStorage().local.set({ blocklist: updated });
   }
 
   /**
@@ -171,7 +285,7 @@ export class StorageAdapter {
    * @returns {Promise<{ blockingEnabled: boolean }>}
    */
   static async getSettings() {
-    const result = await chrome.storage.sync.get('settings');
+    const result = await getStorage().sync.get('settings');
     return { ...DEFAULT_SETTINGS, ...(result.settings || {}) };
   }
 
@@ -182,7 +296,7 @@ export class StorageAdapter {
   static async updateSettings(partial) {
     const current = await StorageAdapter.getSettings();
     const updated = { ...current, ...partial };
-    await chrome.storage.sync.set({ settings: updated });
+    await getStorage().sync.set({ settings: updated });
   }
 
   // ===========================================================================
@@ -194,7 +308,7 @@ export class StorageAdapter {
    * @param {number} daysToKeep — number of days of data to retain
    */
   static async clearOldData(daysToKeep = 30) {
-    const allData = await chrome.storage.local.get(null);
+    const allData = await getStorage().local.get(null);
     const keysToRemove = [];
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - daysToKeep);
@@ -211,7 +325,7 @@ export class StorageAdapter {
     }
 
     if (keysToRemove.length > 0) {
-      await chrome.storage.local.remove(keysToRemove);
+      await getStorage().local.remove(keysToRemove);
     }
 
     return keysToRemove.length;
@@ -227,7 +341,8 @@ export class StorageAdapter {
    * @returns {() => void} unsubscribe function
    */
   static onStorageChanged(callback) {
-    chrome.storage.onChanged.addListener(callback);
-    return () => chrome.storage.onChanged.removeListener(callback);
+    const storage = getStorage();
+    storage.onChanged.addListener(callback);
+    return () => storage.onChanged.removeListener(callback);
   }
 }
