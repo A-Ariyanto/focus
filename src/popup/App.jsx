@@ -23,6 +23,14 @@ export default function App() {
         aria-hidden="true"
         className="pointer-events-none absolute -top-6 -right-6 z-0 h-32 w-32 rounded-full bg-sky-400/30 blur-2xl dark:bg-sky-400/35"
       />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-16 -left-14 z-0 h-56 w-56 rounded-full bg-yellow-500/25 blur-3xl dark:bg-blue-500/30"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-6 -left-6 z-0 h-32 w-32 rounded-full bg-yellow-400/30 blur-2xl dark:bg-yellow-400/35"
+      />
       {/* Header */}
       <header className="relative z-10 px-5 pt-5 pb-3 flex items-start justify-between gap-3">
         <div>
