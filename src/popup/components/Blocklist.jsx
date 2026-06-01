@@ -242,7 +242,7 @@ function AddDomainForm({ value, onChange, onSubmit, error, disabled }) {
           className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-200 ${
             disabled || !value.trim()
               ? "bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-white/5 dark:text-slate-500"
-              : "bg-gradient-to-r from-violet-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-violet-500/20 active:scale-95"
+              : "bg-slate-200 text-slate-700 hover:bg-slate-300 active:scale-95 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600"
           }`}
         >
           Block
