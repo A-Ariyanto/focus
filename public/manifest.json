@@ -16,6 +16,12 @@
       "matches": ["<all_urls>"],
       "js": ["content/enforcer.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content/youtube-focus.js"],
+      "css": ["content/youtube-focus.css"],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [

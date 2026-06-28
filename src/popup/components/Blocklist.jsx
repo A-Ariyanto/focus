@@ -12,7 +12,7 @@ import { StorageAdapter } from "../../lib/storage-adapter";
  */
 export default function Blocklist() {
   const [blocklist, setBlocklist] = useState([]);
-  const [settings, setSettings] = useState({ blockingEnabled: true });
+  const [settings, setSettings] = useState({ blockingEnabled: true, youtubeCleanMode: true });
   const [newDomain, setNewDomain] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,6 +74,18 @@ export default function Blocklist() {
       // Revert on failure
       setSettings((prev) => ({ ...prev, blockingEnabled: !newValue }));
       console.error("[Focus] Failed to toggle blocking:", err);
+    }
+  };
+
+  const handleToggleYoutubeFocus = async () => {
+    const newValue = settings.youtubeCleanMode !== false ? false : true;
+    setSettings((prev) => ({ ...prev, youtubeCleanMode: newValue }));
+    try {
+      await StorageAdapter.updateSettings({ youtubeCleanMode: newValue });
+    } catch (err) {
+      // Revert on failure
+      setSettings((prev) => ({ ...prev, youtubeCleanMode: !newValue }));
+      console.error("[Focus] Failed to toggle YouTube Focus:", err);
     }
   };
 
@@ -148,6 +160,12 @@ export default function Blocklist() {
         onToggle={handleToggleBlocking}
       />
 
+      {/* YouTube Focus Mode Toggle */}
+      <YoutubeFocusToggle
+        enabled={settings.youtubeCleanMode !== false}
+        onToggle={handleToggleYoutubeFocus}
+      />
+
       {/* Add Domain */}
       <AddDomainForm
         value={newDomain}
@@ -164,6 +182,48 @@ export default function Blocklist() {
         removingDomain={removingDomain}
         disabled={!settings.blockingEnabled}
       />
+    </div>
+  );
+}
+
+function YoutubeFocusToggle({ enabled, onToggle }) {
+  return (
+    <div className="relative rounded-2xl bg-white border border-slate-100 shadow-sm p-4 overflow-hidden group dark:bg-[#1e2533] dark:border-slate-800">
+      {/* Ambient glow */}
+      <div
+        className={`absolute -top-10 -right-10 w-28 h-28 rounded-full blur-3xl transition-all duration-700 ${
+          enabled ? "bg-red-500/20" : "bg-slate-500/10"
+        }`}
+      />
+
+      <div className="relative z-10 flex items-center justify-between">
+        <div>
+          <p className="text-[13px] font-semibold text-slate-900 dark:text-white">
+            YouTube Focus Mode
+          </p>
+          <p className="text-[11px] text-slate-500 mt-0.5 dark:text-slate-400">
+            {enabled ? "Recommendations & comments hidden" : "YouTube distractions allowed"}
+          </p>
+        </div>
+
+        {/* Toggle switch */}
+        <button
+          id="toggle-youtube-focus"
+          onClick={onToggle}
+          className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400/50 ${
+            enabled ? "bg-red-500" : "bg-slate-300 dark:bg-slate-600"
+          }`}
+          role="switch"
+          aria-checked={enabled}
+          aria-label="Toggle YouTube Focus Mode"
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300 ${
+              enabled ? "translate-x-5" : "translate-x-0"
+            }`}
+          />
+        </button>
+      </div>
     </div>
   );
 }
