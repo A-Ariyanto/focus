@@ -1,0 +1,72 @@
+/**
+ * Focus — YouTube Focus CSS
+ *
+ * Vanilla CSS injected on youtube.com to hide recommendation surfaces.
+ * Rules are scoped to context classes applied to the <html> element
+ * by the youtube-focus.js content script to prevent visual flickering.
+ */
+
+/* =============================================================================
+   1. Homepage Context (.focus-yt-home)
+   ============================================================================= */
+
+/* Hide the main homepage grid feed */
+html.focus-yt-home ytd-browse[page-subtype="home"] ytd-rich-grid-renderer,
+html.focus-yt-home ytd-browse[page-subtype="home"] #categories,
+html.focus-yt-home ytd-browse[page-subtype="home"] #primary {
+  display: none !important;
+}
+
+/* Ensure the background is clean and matches the theme */
+html.focus-yt-home #page-manager {
+  background-color: var(--yt-spec-base-background, #fff) !important;
+}
+
+/* =============================================================================
+   2. Watch Page Context (.focus-yt-watch)
+   ============================================================================= */
+
+/* Hide watch page recommendations sidebar (related videos) */
+html.focus-yt-watch #secondary.ytd-watch-flexy,
+html.focus-yt-watch ytd-watch-next-secondary-results-renderer {
+  display: none !important;
+}
+
+/* Hide comments section */
+html.focus-yt-watch ytd-comments#comments {
+  display: none !important;
+}
+
+/* Hide engagement panels in the sidebar (chat, structured info) */
+html.focus-yt-watch ytd-engagement-panel-section-list-renderer {
+  display: none !important;
+}
+
+/* Layout Correction: Center the video player and details on watch page */
+html.focus-yt-watch ytd-watch-flexy[flexy] #primary.ytd-watch-flexy {
+  max-width: 1280px !important;
+  margin: 0 auto !important;
+  float: none !important;
+}
+
+/* =============================================================================
+   3. Global Hiding Rules (Shorts, Endscreens, Ads)
+   ============================================================================= */
+
+/* Hide Shorts navigation guide entries in sidebar and mini-guide */
+ytd-guide-entry-renderer[entry-id="FEshorts"],
+ytd-mini-guide-entry-renderer[aria-label="Shorts"] {
+  display: none !important;
+}
+
+/* Hide Shorts shelves in search results or channels */
+ytd-reel-shelf-renderer,
+ytd-rich-shelf-renderer[is-shorts] {
+  display: none !important;
+}
+
+/* Hide recommended endscreens overlays at the end of videos */
+.html5-endscreen,
+.ytp-ce-element {
+  display: none !important;
+}
