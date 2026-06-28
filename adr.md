@@ -72,10 +72,10 @@ Context:
 The extension needs to add a YouTube Focus Mode that removes recommendation feeds and comments. This feature must not cause visual flickering, must not degrade performance, and should require no new extension permissions.
 
 Decision:
-Implement a hybrid CSS-first, JS-assisted hiding mechanism. CSS selectors target stable web component tags (e.g., `ytd-rich-grid-renderer`, `ytd-comments`) scoped to context classes on the `<html>` element. A dedicated content script (`youtube-focus.js`) injected at `document_start` detects URL sub-paths (home, watch, search) to apply the correct context class, and injects a clean search box on the homepage.
+Implement a hybrid CSS-first, JS-assisted hiding mechanism. CSS selectors target stable web component tags (e.g., `ytd-rich-grid-renderer`, `ytd-comments`) scoped to context classes on the `<html>` element. A dedicated content script (`youtube-focus.js`) injected at `document_start` detects URL sub-paths (home, watch, search) to apply the correct context class.
 
 Rationale:
-Injecting CSS rules tied to root classes resolves page flickering issues before layout paints. Restricting JavaScript DOM modification to context configuration and surgical injection avoids heavy observer overhead. Operating entirely in the DOM avoids requesting network interception permissions (`declarativeNetRequest`), preserving privacy and user-level transparency.
+Injecting CSS rules tied to root classes resolves page flickering issues before layout paints. Restricting JavaScript DOM modification to context configuration avoids heavy observer overhead. Operating entirely in the DOM avoids requesting network interception permissions (`declarativeNetRequest`), preserving privacy and user-level transparency.
 
 Consequences:
 No new permissions are needed for users. Hiding logic is highly responsive, but selectors depend on YouTube’s internal DOM structure and will require ongoing monitoring for upstream layout shifts.
