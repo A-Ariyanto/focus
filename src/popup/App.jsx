@@ -1,6 +1,7 @@
 import { useState } from "react";
 import Dashboard from "./components/Dashboard";
 import Blocklist from "./components/Blocklist";
+import YouTubeFocus from "./components/YouTubeFocus";
 import ThemeToggle from "./components/ThemeToggle";
 
 /**
@@ -9,9 +10,16 @@ import ThemeToggle from "./components/ThemeToggle";
  * Views:
  *   - Dashboard: Today's screen time + top 5 domains
  *   - Blocklist: Site blocker management (add/remove domains, global toggle)
+ *   - YouTube: Granular YouTube distraction-removal controls
  */
 export default function App() {
   const [activeView, setActiveView] = useState("dashboard");
+
+  const tabs = [
+    { id: "dashboard", label: "Dashboard" },
+    { id: "blocklist", label: "Blocklist" },
+    { id: "youtube", label: "YouTube" },
+  ];
 
   return (
     <div className="relative w-[360px] min-h-[480px] overflow-hidden bg-slate-50 text-slate-900 dark:bg-[#121824] dark:text-white font-[Inter,system-ui,sans-serif] transition-colors">
@@ -47,33 +55,34 @@ export default function App() {
 
       {/* Navigation Tabs */}
       <nav className="relative z-10 flex gap-1 px-5 mb-4">
-        <button
-          id="nav-dashboard"
-          onClick={() => setActiveView("dashboard")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
-            activeView === "dashboard"
-              ? "bg-white text-slate-900 border-slate-200 shadow-sm dark:bg-[#181f2c] dark:text-white dark:border-slate-700"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/5"
-          }`}
-        >
-          Dashboard
-        </button>
-        <button
-          id="nav-blocklist"
-          onClick={() => setActiveView("blocklist")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
-            activeView === "blocklist"
-              ? "bg-white text-slate-900 border-slate-200 shadow-sm dark:bg-[#181f2c] dark:text-white dark:border-slate-700"
-              : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/5"
-          }`}
-        >
-          Blocklist
-        </button>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            id={`nav-${tab.id}`}
+            onClick={() => setActiveView(tab.id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+              activeView === tab.id
+                ? "bg-white text-slate-900 border-slate-200 shadow-sm dark:bg-[#181f2c] dark:text-white dark:border-slate-700"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/5"
+            }`}
+          >
+            {tab.id === "youtube" ? (
+              <span className="flex items-center gap-1">
+                <span className="text-red-500 text-[10px] leading-none">▶</span>
+                {tab.label}
+              </span>
+            ) : (
+              tab.label
+            )}
+          </button>
+        ))}
       </nav>
 
       {/* Content Area */}
       <main className="relative z-10 px-5 pb-5">
-        {activeView === "dashboard" ? <Dashboard /> : <Blocklist />}
+        {activeView === "dashboard" && <Dashboard />}
+        {activeView === "blocklist" && <Blocklist />}
+        {activeView === "youtube" && <YouTubeFocus />}
       </main>
     </div>
   );
