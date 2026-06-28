@@ -67,10 +67,7 @@ export default function App() {
             }`}
           >
             {tab.id === "youtube" ? (
-              <span className="flex items-center gap-1">
-                <span className="text-red-500 text-[10px] leading-none">▶</span>
-                {tab.label}
-              </span>
+              <span className="flex items-center gap-1">{tab.label}</span>
             ) : (
               tab.label
             )}
