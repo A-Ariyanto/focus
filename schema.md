@@ -51,14 +51,31 @@ Shape:
 
 ```json
 {
-  "blockingEnabled": true
+  "blockingEnabled": true,
+  "youtubeFocus": {
+    "active": true,
+    "hideFeed": true,
+    "hideSidebar": true,
+    "hideComments": true,
+    "hideEndscreen": true,
+    "hideShorts": true,
+    "hideMerch": true,
+    "hideSubBar": false,
+    "hideTrending": false,
+    "hideNotificationBell": false,
+    "hideLiveChat": false,
+    "disableAutoplay": false
+  }
 }
 ```
 
 Meaning:
 
-- Controls whether the blocker is active.
-- Currently the schema is intentionally small so it stays within sync storage limits.
+- `blockingEnabled` controls whether the site blocker is active.
+- `youtubeFocus.active` is the master kill-switch for YouTube Focus Mode.
+- Each `youtubeFocus.*` key maps to an individual CSS file injected by the content script.
+- The `active` flag must be `true` for any individual option to take effect.
+- Legacy `youtubeCleanMode` (boolean) is automatically migrated to `youtubeFocus.active` on first read.
 
 ## Normalization Rules
 
