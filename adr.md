@@ -64,18 +64,19 @@ This keeps the page compliant with extension security expectations and removes a
 Consequences:
 The page is predictable and secure, but any future visual enhancements need to remain compatible with extension CSP rules.
 
-## ADR 005: Use class-scoped CSS injection and DOM-level hiding for in-page Focus Modes
+## ADR 005: Granular Per-Feature CSS Injection for YouTube Focus Mode
 
-Status: Accepted
+Status: Accepted (updated from v1 class-scoping approach)
 
 Context:
-The extension needs to add a YouTube Focus Mode that removes recommendation feeds and comments. This feature must not cause visual flickering, must not degrade performance, and should require no new extension permissions.
+The extension needs a YouTube Focus Mode that removes individual distraction surfaces (feed, sidebar, comments, Shorts, endscreen, etc.) with granular user control. The initial v1 implementation used a single monolithic CSS file scoped to context classes on the `<html>` element, which treated all features as a single on/off switch.
 
 Decision:
-Implement a hybrid CSS-first, JS-assisted hiding mechanism. CSS selectors target stable web component tags (e.g., `ytd-rich-grid-renderer`, `ytd-comments`) scoped to context classes on the `<html>` element. A dedicated content script (`youtube-focus.js`) injected at `document_start` detects URL sub-paths (home, watch, search) to apply the correct context class.
+Replace the monolithic CSS + class-scoping approach with individual CSS files per feature (e.g. `hide-feed.css`, `hide-sidebar.css`), dynamically injected or removed via `<link>` tags by the content script (`youtube-focus.js`). The content script adopts the `addCSS(file)` / `removeCSS(file)` pattern from the proven DF Tube extension. A `prehide-feed.css` file is still injected via the manifest at `document_start` to prevent feed flash. Settings are stored in `chrome.storage.sync` under `settings.youtubeFocus` as a granular object with 11 individual boolean flags and a master `active` switch.
 
 Rationale:
-Injecting CSS rules tied to root classes resolves page flickering issues before layout paints. Restricting JavaScript DOM modification to context configuration avoids heavy observer overhead. Operating entirely in the DOM avoids requesting network interception permissions (`declarativeNetRequest`), preserving privacy and user-level transparency.
+Individual CSS files make it easy to add, update, or remove specific features without touching unrelated rules. Dynamic `<link>` injection is instant and reversible on SPA navigations. The granular settings model matches what users actually want — they may want to hide comments but keep the sidebar. The v1 class-scoping approach forced a single all-or-nothing trade-off.
 
 Consequences:
-No new permissions are needed for users. Hiding logic is highly responsive, but selectors depend on YouTube’s internal DOM structure and will require ongoing monitoring for upstream layout shifts.
+Each YouTube UI feature is independently controllable from a dedicated popup tab. The CSS files in `public/content/youtube/` are registered as `web_accessible_resources` so the content script can reference them via `chrome.runtime.getURL()`. The SPA detection strategy (yt-navigate events, History API patching, MutationObserver) from v1 is preserved as it is superior to the timer-polling approach used in DF Tube.
+
