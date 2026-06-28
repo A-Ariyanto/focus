@@ -17,8 +17,40 @@
 // Default Values
 // =============================================================================
 
+/**
+ * Default granular YouTube Focus options.
+ * Each key maps to a single CSS file that gets injected/removed on demand.
+ */
+const DEFAULT_YOUTUBE_FOCUS = {
+  /** Master kill-switch — must be true for any individual option to take effect */
+  active: true,
+  /** Hide the homepage video grid feed */
+  hideFeed: true,
+  /** Hide the watch-page right sidebar (related/recommended videos) */
+  hideSidebar: true,
+  /** Hide the comments section */
+  hideComments: true,
+  /** Hide endscreen overlay cards at end of video */
+  hideEndscreen: true,
+  /** Hide Shorts from all surfaces (sidebar nav, shelves) */
+  hideShorts: true,
+  /** Hide the merch shelf below videos */
+  hideMerch: true,
+  /** Hide the left navigation guide / mini-guide */
+  hideSubBar: false,
+  /** Hide the Trending/Explore navigation entry */
+  hideTrending: false,
+  /** Hide the notification bell */
+  hideNotificationBell: false,
+  /** Hide the live chat panel on streams */
+  hideLiveChat: false,
+  /** Disable autoplay by clicking the toggle after 5 seconds */
+  disableAutoplay: false,
+};
+
 const DEFAULT_SETTINGS = {
   blockingEnabled: true,
+  youtubeFocus: DEFAULT_YOUTUBE_FOCUS,
 };
 
 // =============================================================================
@@ -282,20 +314,68 @@ export class StorageAdapter {
 
   /**
    * Get all user settings, merged with defaults.
-   * @returns {Promise<{ blockingEnabled: boolean }>}
+   * Also handles migration from legacy `youtubeCleanMode` boolean.
+   * @returns {Promise<{ blockingEnabled: boolean, youtubeFocus: object }>}
    */
   static async getSettings() {
     const result = await getStorage().sync.get('settings');
-    return { ...DEFAULT_SETTINGS, ...(result.settings || {}) };
+    const raw = result.settings || {};
+
+    // -------------------------------------------------------------------------
+    // Migration: youtubeCleanMode (boolean) → youtubeFocus.active
+    // Runs once and writes back the migrated value to storage.
+    // -------------------------------------------------------------------------
+    if ('youtubeCleanMode' in raw && !('youtubeFocus' in raw)) {
+      const migrated = {
+        ...DEFAULT_SETTINGS,
+        ...raw,
+        youtubeFocus: {
+          ...DEFAULT_YOUTUBE_FOCUS,
+          active: raw.youtubeCleanMode !== false,
+        },
+      };
+      delete migrated.youtubeCleanMode;
+      await getStorage().sync.set({ settings: migrated });
+      return migrated;
+    }
+
+    // Merge top-level settings with defaults, then deeply merge youtubeFocus
+    const settings = { ...DEFAULT_SETTINGS, ...raw };
+    settings.youtubeFocus = { ...DEFAULT_YOUTUBE_FOCUS, ...(raw.youtubeFocus || {}) };
+
+    return settings;
   }
 
   /**
-   * Update settings with a partial object (shallow merge).
-   * @param {Partial<{ blockingEnabled: boolean }>} partial
+   * Update top-level settings with a partial object (shallow merge).
+   * @param {Partial<{ blockingEnabled: boolean, youtubeFocus: object }>} partial
    */
   static async updateSettings(partial) {
     const current = await StorageAdapter.getSettings();
     const updated = { ...current, ...partial };
+    await getStorage().sync.set({ settings: updated });
+  }
+
+  /**
+   * Get only the YouTube Focus sub-options, merged with defaults.
+   * @returns {Promise<typeof DEFAULT_YOUTUBE_FOCUS>}
+   */
+  static async getYoutubeFocusOptions() {
+    const settings = await StorageAdapter.getSettings();
+    return settings.youtubeFocus;
+  }
+
+  /**
+   * Update individual YouTube Focus options (deep partial merge).
+   * Preserves all other settings and other youtubeFocus keys.
+   * @param {Partial<typeof DEFAULT_YOUTUBE_FOCUS>} partial
+   */
+  static async updateYoutubeFocusOptions(partial) {
+    const current = await StorageAdapter.getSettings();
+    const updated = {
+      ...current,
+      youtubeFocus: { ...current.youtubeFocus, ...partial },
+    };
     await getStorage().sync.set({ settings: updated });
   }
 
