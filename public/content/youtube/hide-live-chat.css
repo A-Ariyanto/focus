@@ -1,0 +1,9 @@
+/**
+ * Focus — Hide YouTube Live Chat
+ *
+ * Hides the live chat frame on live streams and premieres.
+ * When combined with hide-sidebar.css, the video can fill the available space.
+ */
+ytd-live-chat-frame {
+  display: none !important;
+}

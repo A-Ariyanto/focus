@@ -1,0 +1,20 @@
+/**
+ * Focus — Hide YouTube Watch Page Sidebar
+ *
+ * Hides the right-side panel containing related/recommended videos
+ * on the video watch page. Works with expand-content.css to
+ * center the video player when the sidebar is removed.
+ */
+
+/* Modern YouTube (Polymer) */
+#secondary.ytd-watch-flexy,
+ytd-watch-next-secondary-results-renderer,
+#watch7-sidebar-contents,
+#related {
+  display: none !important;
+}
+
+/* Engagement panels (live chat, structured info, etc.) */
+ytd-engagement-panel-section-list-renderer {
+  display: none !important;
+}

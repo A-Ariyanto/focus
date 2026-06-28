@@ -1,0 +1,10 @@
+/**
+ * Focus — Hide YouTube Notification Bell
+ *
+ * Hides the notification bell button in the top-right header,
+ * reducing the pull of notification counts.
+ */
+ytd-notification-topbar-button-renderer,
+#buttons ytd-notification-topbar-button-renderer {
+  display: none !important;
+}

@@ -1,0 +1,10 @@
+/**
+ * Focus — Hide YouTube Merch Shelf
+ *
+ * Hides the merchandise shelf that appears below videos
+ * when a creator has linked their merch store.
+ */
+ytd-merch-shelf-renderer,
+.ytd-merch-shelf-renderer {
+  display: none !important;
+}

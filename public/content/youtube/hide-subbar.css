@@ -1,0 +1,23 @@
+/**
+ * Focus — Hide YouTube Navigation Sidebar / Guide
+ *
+ * Hides the persistent left-side navigation guide (the expanded drawer
+ * and mini-guide bar) to reduce navigational temptation.
+ */
+
+/* Expanded guide drawer */
+app-drawer#guide,
+ytd-app #guide-content,
+tp-yt-app-drawer#guide {
+  display: none !important;
+}
+
+/* Mini guide (icon-only left rail) */
+ytd-mini-guide-renderer {
+  display: none !important;
+}
+
+/* Guide menu width collapse (legacy) */
+#appbar-guide-menu {
+  width: 0;
+}
