@@ -2,7 +2,7 @@
  * Focus — YouTube Focus Content Script
  *
  * Scoped to youtube.com. Handles context detection, SPA transitions,
- * root HTML class toggles, and injection of the central search interface.
+ * and root HTML class toggles to manage layout states.
  */
 
 (function () {
@@ -13,7 +13,6 @@
   // ===========================================================================
   let youtubeCleanMode = true;
   let currentHref = window.location.href;
-  let customSearchInjected = false;
 
   // CSS classes for context mapping
   const CONTEXT_CLASSES = {
@@ -77,110 +76,6 @@
   }
 
   // ===========================================================================
-  // Custom Central Search Injection (Strategy B)
-  // ===========================================================================
-
-  /**
-   * Inject a clean, central search box into the empty homepage body.
-   */
-  function injectCentralSearch() {
-    if (!youtubeCleanMode || customSearchInjected) return;
-
-    // We inject inside the main browse container once it's available
-    const browseContainer = document.querySelector('ytd-browse[page-subtype="home"]');
-    if (!browseContainer) return;
-
-    // Check if the container is already empty or hidden, and remove existing if any
-    const existing = document.getElementById('focus-yt-search-container');
-    if (existing) existing.remove();
-
-    const searchContainer = document.createElement('div');
-    searchContainer.id = 'focus-yt-search-container';
-    searchContainer.style.cssText = `
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 65vh;
-      width: 100%;
-      box-sizing: border-box;
-      padding: 20px;
-      font-family: Roboto, Arial, sans-serif;
-    `;
-
-    searchContainer.innerHTML = `
-      <div style="text-align: center; width: 100%; max-width: 580px;">
-        <h1 style="
-          font-size: 3rem;
-          margin-bottom: 2rem;
-          font-weight: 500;
-          letter-spacing: -0.5px;
-          color: var(--yt-spec-text-primary, #0f0f0f);
-        ">Focus</h1>
-        <form id="focus-yt-search-form" style="width: 100%; position: relative;">
-          <input 
-            type="text" 
-            id="focus-yt-search-input" 
-            placeholder="Search YouTube distraction-free..." 
-            autocomplete="off" 
-            style="
-              width: 100%;
-              padding: 14px 24px;
-              border-radius: 30px;
-              border: 1px solid var(--yt-spec-10-percent-layer, #e5e5e5);
-              background-color: var(--yt-spec-menu-background, #fff);
-              color: var(--yt-spec-text-primary, #0f0f0f);
-              font-size: 16px;
-              outline: none;
-              box-shadow: 0 1px 6px rgba(0,0,0,0.05);
-              transition: box-shadow 0.2s ease, border-color 0.2s ease;
-            "
-          >
-        </form>
-      </div>
-    `;
-
-    browseContainer.appendChild(searchContainer);
-    customSearchInjected = true;
-
-    // Focus input field style logic
-    const input = searchContainer.querySelector('#focus-yt-search-input');
-    input.addEventListener('focus', () => {
-      input.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-      input.style.borderColor = 'var(--yt-spec-brand-button-background, #cc0000)';
-    });
-    input.addEventListener('blur', () => {
-      input.style.boxShadow = '0 1px 6px rgba(0,0,0,0.05)';
-      input.style.borderColor = 'var(--yt-spec-10-percent-layer, #e5e5e5)';
-    });
-
-    // Form submit / search query execution
-    const form = searchContainer.querySelector('#focus-yt-search-form');
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const val = input.value.trim();
-      if (val) {
-        // Perform search using client routing
-        window.location.href = `/results?search_query=${encodeURIComponent(val)}`;
-      }
-    });
-
-    // Automatically focus the input
-    setTimeout(() => input.focus(), 200);
-  }
-
-  /**
-   * Remove the custom injected search box from the page.
-   */
-  function removeCentralSearch() {
-    const existing = document.getElementById('focus-yt-search-container');
-    if (existing) {
-      existing.remove();
-    }
-    customSearchInjected = false;
-  }
-
-  // ===========================================================================
   // Page Transition Lifecycle Management
   // ===========================================================================
 
@@ -190,29 +85,11 @@
   function handlePageUpdate() {
     if (!youtubeCleanMode) {
       clearAllContextClasses();
-      removeCentralSearch();
       return;
     }
 
     const context = determineContext();
     applyContextClass(context);
-
-    if (context === 'home') {
-      // Setup observer to wait for ytd-browse home container to mount
-      if (document.querySelector('ytd-browse[page-subtype="home"]')) {
-        injectCentralSearch();
-      } else {
-        const bodyWait = new MutationObserver(() => {
-          if (document.querySelector('ytd-browse[page-subtype="home"]')) {
-            bodyWait.disconnect();
-            injectCentralSearch();
-          }
-        });
-        bodyWait.observe(document.documentElement, { childList: true, subtree: true });
-      }
-    } else {
-      removeCentralSearch();
-    }
   }
 
   // ===========================================================================
