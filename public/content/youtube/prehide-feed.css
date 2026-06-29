@@ -1,0 +1,12 @@
+/**
+ * Focus — YouTube Pre-hide Feed
+ *
+ * Injected at document_start via manifest to prevent the homepage feed
+ * from flashing before the content script applies user settings.
+ * This is a intentionally aggressive early hide — it gets removed or
+ * replaced by hide-feed.css once settings are loaded.
+ */
+#feed,
+ytd-browse[page-subtype="home"] {
+  display: none;
+}

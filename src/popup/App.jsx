@@ -1,6 +1,8 @@
-import { useState } from 'react';
-import Dashboard from './components/Dashboard';
-import Blocklist from './components/Blocklist';
+import { useState } from "react";
+import Dashboard from "./components/Dashboard";
+import Blocklist from "./components/Blocklist";
+import YouTubeFocus from "./components/YouTubeFocus";
+import ThemeToggle from "./components/ThemeToggle";
 
 /**
  * App — Root component for the Focus popup.
@@ -8,55 +10,76 @@ import Blocklist from './components/Blocklist';
  * Views:
  *   - Dashboard: Today's screen time + top 5 domains
  *   - Blocklist: Site blocker management (add/remove domains, global toggle)
+ *   - YouTube: Granular YouTube distraction-removal controls
  */
 export default function App() {
-  const [activeView, setActiveView] = useState('dashboard');
+  const [activeView, setActiveView] = useState("dashboard");
+
+  const tabs = [
+    { id: "dashboard", label: "Dashboard" },
+    { id: "blocklist", label: "Blocklist" },
+    { id: "youtube", label: "YouTube" },
+  ];
 
   return (
-    <div className="w-[360px] min-h-[480px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white font-[Inter,system-ui,sans-serif]">
+    <div className="relative w-[360px] min-h-[480px] overflow-hidden bg-slate-50 text-slate-900 dark:bg-[#121824] dark:text-white font-[Inter,system-ui,sans-serif] transition-colors">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-16 -right-14 z-0 h-56 w-56 rounded-full bg-blue-500/25 blur-3xl dark:bg-blue-500/30"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-6 -right-6 z-0 h-32 w-32 rounded-full bg-sky-400/30 blur-2xl dark:bg-sky-400/35"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-16 -left-14 z-0 h-56 w-56 rounded-full bg-yellow-500/25 blur-3xl dark:bg-blue-500/30"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-6 -left-6 z-0 h-32 w-32 rounded-full bg-yellow-400/30 blur-2xl dark:bg-yellow-400/35"
+      />
       {/* Header */}
-      <header className="px-5 pt-5 pb-3">
-        <h1 className="text-xl font-bold tracking-tight">
-          <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
+      <header className="relative z-10 px-5 pt-5 pb-3 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
             Focus
-          </span>
-        </h1>
-        <p className="text-xs text-slate-400 mt-0.5">Digital Wellbeing</p>
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Digital Wellbeing
+          </p>
+        </div>
+
+        <ThemeToggle />
       </header>
 
       {/* Navigation Tabs */}
-      <nav className="flex gap-1 px-5 mb-4">
-        <button
-          id="nav-dashboard"
-          onClick={() => setActiveView('dashboard')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-            activeView === 'dashboard'
-              ? 'bg-white/10 text-white shadow-sm backdrop-blur-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-          }`}
-        >
-          Dashboard
-        </button>
-        <button
-          id="nav-blocklist"
-          onClick={() => setActiveView('blocklist')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-            activeView === 'blocklist'
-              ? 'bg-white/10 text-white shadow-sm backdrop-blur-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
-          }`}
-        >
-          Blocklist
-        </button>
+      <nav className="relative z-10 flex gap-1 px-5 mb-4">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            id={`nav-${tab.id}`}
+            onClick={() => setActiveView(tab.id)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200 ${
+              activeView === tab.id
+                ? "bg-white text-slate-900 border-slate-200 shadow-sm dark:bg-[#181f2c] dark:text-white dark:border-slate-700"
+                : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-white/5"
+            }`}
+          >
+            {tab.id === "youtube" ? (
+              <span className="flex items-center gap-1">{tab.label}</span>
+            ) : (
+              tab.label
+            )}
+          </button>
+        ))}
       </nav>
 
       {/* Content Area */}
-      <main className="px-5 pb-5">
-        {activeView === 'dashboard' ? (
-          <Dashboard />
-        ) : (
-          <Blocklist />
-        )}
+      <main className="relative z-10 px-5 pb-5">
+        {activeView === "dashboard" && <Dashboard />}
+        {activeView === "blocklist" && <Blocklist />}
+        {activeView === "youtube" && <YouTubeFocus />}
       </main>
     </div>
   );

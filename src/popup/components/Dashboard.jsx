@@ -1,4 +1,4 @@
-import { useUsageData } from '../hooks/useUsageData';
+import { useUsageData } from "../hooks/useUsageData";
 
 // =============================================================================
 // Helpers
@@ -10,7 +10,7 @@ import { useUsageData } from '../hooks/useUsageData';
  * @returns {string} e.g., "2h 15m", "45m", "30s"
  */
 function formatTime(ms) {
-  if (ms < 1000) return '0s';
+  if (ms < 1000) return "0s";
 
   const totalSeconds = Math.floor(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -33,11 +33,11 @@ function formatTime(ms) {
  * @returns {{ from: string, to: string }}
  */
 const RANK_GRADIENTS = [
-  { from: 'from-violet-500', to: 'to-fuchsia-500' },
-  { from: 'from-cyan-500', to: 'to-blue-500' },
-  { from: 'from-emerald-500', to: 'to-teal-500' },
-  { from: 'from-amber-500', to: 'to-orange-500' },
-  { from: 'from-rose-500', to: 'to-pink-500' },
+  { from: "from-violet-500", to: "to-fuchsia-500" },
+  { from: "from-cyan-500", to: "to-blue-500" },
+  { from: "from-emerald-500", to: "to-teal-500" },
+  { from: "from-amber-500", to: "to-orange-500" },
+  { from: "from-rose-500", to: "to-pink-500" },
 ];
 
 // =============================================================================
@@ -51,20 +51,18 @@ function TotalTimeCard({ totalMs }) {
   const timeStr = formatTime(totalMs);
 
   return (
-    <div className="relative rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-5 mb-4 overflow-hidden group">
+    <div className="relative rounded-2xl bg-white border border-slate-100 shadow-sm p-5 mb-4 overflow-hidden group dark:bg-[#1e2533] dark:border-slate-800">
       {/* Ambient glow */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-violet-500/20 rounded-full blur-3xl group-hover:bg-violet-500/30 transition-all duration-700" />
       <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-cyan-500/15 rounded-full blur-2xl group-hover:bg-cyan-500/25 transition-all duration-700" />
 
       <div className="relative z-10 flex items-center justify-between">
         <div>
-          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-1">
+          <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1 dark:text-slate-400">
             Today's Screen Time
           </p>
           <p className="text-3xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-violet-400 to-cyan-400 bg-clip-text text-transparent">
-              {timeStr}
-            </span>
+            <span className="text-slate-900 dark:text-white">{timeStr}</span>
           </p>
         </div>
 
@@ -74,7 +72,9 @@ function TotalTimeCard({ totalMs }) {
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
             <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
           </div>
-          <span className="text-[10px] text-emerald-400 font-medium">Tracking</span>
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+            Tracking
+          </span>
         </div>
       </div>
     </div>
@@ -99,20 +99,20 @@ function DomainRow({ domain, ms, maxMs, index }) {
             alt=""
             className="w-4 h-4 rounded-sm flex-shrink-0"
             onError={(e) => {
-              e.target.style.display = 'none';
+              e.target.style.display = "none";
             }}
           />
-          <span className="text-[13px] font-medium text-slate-200 truncate">
+          <span className="text-[13px] font-medium text-slate-700 truncate dark:text-slate-200">
             {domain}
           </span>
         </div>
-        <span className="text-[11px] font-semibold text-slate-400 tabular-nums flex-shrink-0 ml-2">
+        <span className="text-[11px] font-semibold text-slate-500 tabular-nums flex-shrink-0 ml-2 dark:text-slate-400">
           {timeStr}
         </span>
       </div>
 
       {/* Progress bar */}
-      <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-white/5">
         <div
           className={`h-full rounded-full bg-gradient-to-r ${gradient.from} ${gradient.to} transition-all duration-1000 ease-out`}
           style={{ width: `${percentage}%` }}
@@ -141,16 +141,18 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <div className="w-6 h-6 border-2 border-violet-400/30 border-t-violet-400 rounded-full animate-spin mb-3" />
-        <p className="text-xs text-slate-400">Loading usage data...</p>
+        <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-500 rounded-full animate-spin mb-3 dark:border-violet-400/30 dark:border-t-violet-400" />
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Loading usage data...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-center">
-        <p className="text-xs text-red-400">{error}</p>
+      <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-center dark:bg-red-500/10 dark:border-red-500/20">
+        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
       </div>
     );
   }
@@ -161,23 +163,23 @@ export default function Dashboard() {
       <TotalTimeCard totalMs={totalMs} />
 
       {/* Top Domains */}
-      <div className="rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 p-4">
-        <h2 className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-3">
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4 dark:bg-[#1e2533] dark:border-slate-800">
+        <h2 className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-3 dark:text-slate-400">
           Top Sites
         </h2>
 
         {usageData.length === 0 ? (
           <div className="text-center py-6">
             <div className="text-2xl mb-2 opacity-50">🌐</div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               No browsing data yet today.
             </p>
-            <p className="text-[10px] text-slate-600 mt-1">
+            <p className="text-[10px] text-slate-400 mt-1 dark:text-slate-500">
               Start browsing — your usage will appear here.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="divide-y divide-slate-100 dark:divide-white/5">
             {usageData.map((entry, index) => (
               <DomainRow
                 key={entry.domain}

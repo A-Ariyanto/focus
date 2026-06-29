@@ -17,9 +17,155 @@
 // Default Values
 // =============================================================================
 
+/**
+ * Default granular YouTube Focus options.
+ * Each key maps to a single CSS file that gets injected/removed on demand.
+ */
+const DEFAULT_YOUTUBE_FOCUS = {
+  /** Master kill-switch — must be true for any individual option to take effect */
+  active: true,
+  /** Hide the homepage video grid feed */
+  hideFeed: true,
+  /** Hide the watch-page right sidebar (related/recommended videos) */
+  hideSidebar: true,
+  /** Hide the comments section */
+  hideComments: true,
+  /** Hide endscreen overlay cards at end of video */
+  hideEndscreen: true,
+  /** Hide Shorts from all surfaces (sidebar nav, shelves) */
+  hideShorts: true,
+  /** Hide the merch shelf below videos */
+  hideMerch: true,
+  /** Hide the left navigation guide / mini-guide */
+  hideSubBar: false,
+  /** Hide the Trending/Explore navigation entry */
+  hideTrending: false,
+  /** Hide the notification bell */
+  hideNotificationBell: false,
+  /** Hide the live chat panel on streams */
+  hideLiveChat: false,
+  /** Disable autoplay by clicking the toggle after 5 seconds */
+  disableAutoplay: false,
+};
+
 const DEFAULT_SETTINGS = {
   blockingEnabled: true,
+  youtubeFocus: DEFAULT_YOUTUBE_FOCUS,
 };
+
+// =============================================================================
+// Dev Storage Shim (for Vite preview)
+// =============================================================================
+
+const hasChromeStorage =
+  typeof chrome !== 'undefined' &&
+  chrome?.storage?.local &&
+  chrome?.storage?.sync &&
+  chrome?.storage?.onChanged;
+
+let memoryStorage = null;
+const memoryStore = {
+  local: {},
+  sync: {},
+};
+const memoryListeners = new Set();
+
+function getStorage() {
+  if (hasChromeStorage) return chrome.storage;
+
+  if (!memoryStorage) {
+    memoryStorage = createMemoryStorage();
+  }
+
+  return memoryStorage;
+}
+
+function createMemoryStorage() {
+  return {
+    local: createMemoryArea('local'),
+    sync: createMemoryArea('sync'),
+    onChanged: {
+      addListener: (listener) => memoryListeners.add(listener),
+      removeListener: (listener) => memoryListeners.delete(listener),
+    },
+  };
+}
+
+function createMemoryArea(area) {
+  return {
+    get: async (keys) => {
+      const store = memoryStore[area];
+
+      if (keys == null) {
+        return { ...store };
+      }
+
+      if (typeof keys === 'string') {
+        return { [keys]: store[keys] };
+      }
+
+      if (Array.isArray(keys)) {
+        const result = {};
+        for (const key of keys) {
+          result[key] = store[key];
+        }
+        return result;
+      }
+
+      if (typeof keys === 'object') {
+        const result = {};
+        for (const [key, defaultValue] of Object.entries(keys)) {
+          result[key] = store[key] ?? defaultValue;
+        }
+        return result;
+      }
+
+      return {};
+    },
+
+    set: async (items) => {
+      const store = memoryStore[area];
+      const changes = {};
+
+      for (const [key, newValue] of Object.entries(items)) {
+        const oldValue = store[key];
+        store[key] = newValue;
+
+        if (!Object.is(oldValue, newValue)) {
+          changes[key] = { oldValue, newValue };
+        }
+      }
+
+      if (Object.keys(changes).length > 0) {
+        emitChanges(area, changes);
+      }
+    },
+
+    remove: async (keys) => {
+      const store = memoryStore[area];
+      const list = Array.isArray(keys) ? keys : [keys];
+      const changes = {};
+
+      for (const key of list) {
+        if (Object.prototype.hasOwnProperty.call(store, key)) {
+          const oldValue = store[key];
+          delete store[key];
+          changes[key] = { oldValue, newValue: undefined };
+        }
+      }
+
+      if (Object.keys(changes).length > 0) {
+        emitChanges(area, changes);
+      }
+    },
+  };
+}
+
+function emitChanges(area, changes) {
+  for (const listener of memoryListeners) {
+    listener(changes, area);
+  }
+}
 
 // =============================================================================
 // StorageAdapter Class
@@ -64,7 +210,7 @@ export class StorageAdapter {
    */
   static async getTodayUsage() {
     const key = StorageAdapter.getTodayKey();
-    const result = await chrome.storage.local.get(key);
+    const result = await getStorage().local.get(key);
     return result[key] || {};
   }
 
@@ -75,7 +221,7 @@ export class StorageAdapter {
    */
   static async getUsageForDate(date) {
     const key = StorageAdapter.getKeyForDate(date);
-    const result = await chrome.storage.local.get(key);
+    const result = await getStorage().local.get(key);
     return result[key] || {};
   }
 
@@ -87,11 +233,11 @@ export class StorageAdapter {
    */
   static async addUsage(domain, ms) {
     const key = StorageAdapter.getTodayKey();
-    const result = await chrome.storage.local.get(key);
+    const result = await getStorage().local.get(key);
     const existing = result[key] || {};
 
     existing[domain] = (existing[domain] || 0) + ms;
-    await chrome.storage.local.set({ [key]: existing });
+    await getStorage().local.set({ [key]: existing });
   }
 
   /**
@@ -100,14 +246,14 @@ export class StorageAdapter {
    */
   static async mergeUsage(usageMap) {
     const key = StorageAdapter.getTodayKey();
-    const result = await chrome.storage.local.get(key);
+    const result = await getStorage().local.get(key);
     const existing = result[key] || {};
 
     for (const [domain, ms] of Object.entries(usageMap)) {
       existing[domain] = (existing[domain] || 0) + ms;
     }
 
-    await chrome.storage.local.set({ [key]: existing });
+    await getStorage().local.set({ [key]: existing });
   }
 
   // ===========================================================================
@@ -119,7 +265,7 @@ export class StorageAdapter {
    * @returns {Promise<string[]>} Array of blocked domains
    */
   static async getBlocklist() {
-    const result = await chrome.storage.local.get('blocklist');
+    const result = await getStorage().local.get('blocklist');
     return result.blocklist || [];
   }
 
@@ -133,7 +279,7 @@ export class StorageAdapter {
 
     if (!blocklist.includes(normalized)) {
       blocklist.push(normalized);
-      await chrome.storage.local.set({ blocklist });
+      await getStorage().local.set({ blocklist });
     }
   }
 
@@ -145,7 +291,7 @@ export class StorageAdapter {
     const normalized = domain.toLowerCase().replace(/^www\./, '');
     const blocklist = await StorageAdapter.getBlocklist();
     const updated = blocklist.filter((d) => d !== normalized);
-    await chrome.storage.local.set({ blocklist: updated });
+    await getStorage().local.set({ blocklist: updated });
   }
 
   /**
@@ -168,21 +314,69 @@ export class StorageAdapter {
 
   /**
    * Get all user settings, merged with defaults.
-   * @returns {Promise<{ blockingEnabled: boolean }>}
+   * Also handles migration from legacy `youtubeCleanMode` boolean.
+   * @returns {Promise<{ blockingEnabled: boolean, youtubeFocus: object }>}
    */
   static async getSettings() {
-    const result = await chrome.storage.sync.get('settings');
-    return { ...DEFAULT_SETTINGS, ...(result.settings || {}) };
+    const result = await getStorage().sync.get('settings');
+    const raw = result.settings || {};
+
+    // -------------------------------------------------------------------------
+    // Migration: youtubeCleanMode (boolean) → youtubeFocus.active
+    // Runs once and writes back the migrated value to storage.
+    // -------------------------------------------------------------------------
+    if ('youtubeCleanMode' in raw && !('youtubeFocus' in raw)) {
+      const migrated = {
+        ...DEFAULT_SETTINGS,
+        ...raw,
+        youtubeFocus: {
+          ...DEFAULT_YOUTUBE_FOCUS,
+          active: raw.youtubeCleanMode !== false,
+        },
+      };
+      delete migrated.youtubeCleanMode;
+      await getStorage().sync.set({ settings: migrated });
+      return migrated;
+    }
+
+    // Merge top-level settings with defaults, then deeply merge youtubeFocus
+    const settings = { ...DEFAULT_SETTINGS, ...raw };
+    settings.youtubeFocus = { ...DEFAULT_YOUTUBE_FOCUS, ...(raw.youtubeFocus || {}) };
+
+    return settings;
   }
 
   /**
-   * Update settings with a partial object (shallow merge).
-   * @param {Partial<{ blockingEnabled: boolean }>} partial
+   * Update top-level settings with a partial object (shallow merge).
+   * @param {Partial<{ blockingEnabled: boolean, youtubeFocus: object }>} partial
    */
   static async updateSettings(partial) {
     const current = await StorageAdapter.getSettings();
     const updated = { ...current, ...partial };
-    await chrome.storage.sync.set({ settings: updated });
+    await getStorage().sync.set({ settings: updated });
+  }
+
+  /**
+   * Get only the YouTube Focus sub-options, merged with defaults.
+   * @returns {Promise<typeof DEFAULT_YOUTUBE_FOCUS>}
+   */
+  static async getYoutubeFocusOptions() {
+    const settings = await StorageAdapter.getSettings();
+    return settings.youtubeFocus;
+  }
+
+  /**
+   * Update individual YouTube Focus options (deep partial merge).
+   * Preserves all other settings and other youtubeFocus keys.
+   * @param {Partial<typeof DEFAULT_YOUTUBE_FOCUS>} partial
+   */
+  static async updateYoutubeFocusOptions(partial) {
+    const current = await StorageAdapter.getSettings();
+    const updated = {
+      ...current,
+      youtubeFocus: { ...current.youtubeFocus, ...partial },
+    };
+    await getStorage().sync.set({ settings: updated });
   }
 
   // ===========================================================================
@@ -194,7 +388,7 @@ export class StorageAdapter {
    * @param {number} daysToKeep — number of days of data to retain
    */
   static async clearOldData(daysToKeep = 30) {
-    const allData = await chrome.storage.local.get(null);
+    const allData = await getStorage().local.get(null);
     const keysToRemove = [];
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - daysToKeep);
@@ -211,7 +405,7 @@ export class StorageAdapter {
     }
 
     if (keysToRemove.length > 0) {
-      await chrome.storage.local.remove(keysToRemove);
+      await getStorage().local.remove(keysToRemove);
     }
 
     return keysToRemove.length;
@@ -227,7 +421,8 @@ export class StorageAdapter {
    * @returns {() => void} unsubscribe function
    */
   static onStorageChanged(callback) {
-    chrome.storage.onChanged.addListener(callback);
-    return () => chrome.storage.onChanged.removeListener(callback);
+    const storage = getStorage();
+    storage.onChanged.addListener(callback);
+    return () => storage.onChanged.removeListener(callback);
   }
 }

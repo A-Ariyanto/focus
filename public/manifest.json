@@ -16,12 +16,18 @@
       "matches": ["<all_urls>"],
       "js": ["content/enforcer.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content/youtube-focus.js"],
+      "css": ["content/youtube/prehide-feed.css"],
+      "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
       "matches": ["<all_urls>"],
-      "resources": ["blocked.html", "popup/assets/*"]
+      "resources": ["blocked.html", "popup/assets/*", "content/youtube/*"]
     }
   ],
   "content_security_policy": {

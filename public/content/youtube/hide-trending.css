@@ -1,0 +1,26 @@
+/**
+ * Focus — Hide YouTube Trending
+ *
+ * Hides the Trending/Explore entry from the sidebar navigation
+ * guide and the mini-guide.
+ */
+
+/* Legacy trending guide item */
+#trending-guide-item {
+  display: none !important;
+}
+
+/* Modern guide — Trending is typically the 2nd entry in the first section */
+ytd-guide-section-renderer:nth-child(1) #items > ytd-guide-entry-renderer:nth-child(2) {
+  display: none !important;
+}
+
+/* Mini guide */
+ytd-mini-guide-renderer #items ytd-mini-guide-entry-renderer:nth-child(2) {
+  display: none !important;
+}
+
+/* Top nav bar (legacy) */
+#appbar-nav li:nth-child(2) {
+  display: none !important;
+}

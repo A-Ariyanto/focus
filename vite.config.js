@@ -78,11 +78,13 @@ export default defineConfig({
         blocked: resolve(__dirname, 'src/blocked/index.html'),
         background: resolve(__dirname, 'src/background.js'),
         enforcer: resolve(__dirname, 'src/content/enforcer.js'),
+        youtubeFocus: resolve(__dirname, 'src/content/youtube-focus.js'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'background') return 'background.js';
           if (chunkInfo.name === 'enforcer') return 'content/enforcer.js';
+          if (chunkInfo.name === 'youtubeFocus') return 'content/youtube-focus.js';
           return 'popup/assets/[name]-[hash].js';
         },
         chunkFileNames: 'popup/assets/[name]-[hash].js',

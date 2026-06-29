@@ -1,0 +1,16 @@
+/**
+ * Focus — Hide YouTube Endscreen Overlays
+ *
+ * Hides the recommended video cards that appear over the video
+ * during the last few seconds (endscreens / end cards).
+ */
+
+/* Endscreen overlay container */
+.html5-endscreen,
+.ytp-ce-element,
+.ytp-endscreen-content,
+.ytp-ce-video,
+.ytp-ce-channel,
+.ytp-ce-playlist {
+  display: none !important;
+}

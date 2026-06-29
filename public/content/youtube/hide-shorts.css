@@ -1,0 +1,23 @@
+/**
+ * Focus — Hide YouTube Shorts
+ *
+ * Hides Shorts from all surfaces: sidebar navigation, mini-guide,
+ * shelves in search results, channel pages, and homepage.
+ */
+
+/* Sidebar and mini-guide navigation entries */
+ytd-guide-entry-renderer[entry-id="FEshorts"],
+ytd-mini-guide-entry-renderer[aria-label="Shorts"] {
+  display: none !important;
+}
+
+/* Shorts shelves in feeds and search results */
+ytd-reel-shelf-renderer,
+ytd-rich-shelf-renderer[is-shorts] {
+  display: none !important;
+}
+
+/* Shorts tab on channel pages */
+ytd-browse tp-yt-paper-tab:has([title="Shorts"]) {
+  display: none !important;
+}

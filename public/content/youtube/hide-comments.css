@@ -1,0 +1,15 @@
+/**
+ * Focus — Hide YouTube Comments
+ *
+ * Hides the comment section below videos on the watch page.
+ */
+
+/* Modern YouTube (Polymer) */
+ytd-comments#comments {
+  display: none !important;
+}
+
+/* Legacy YouTube */
+#watch-discussion {
+  display: none !important;
+}

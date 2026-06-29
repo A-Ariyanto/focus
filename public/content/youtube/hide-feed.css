@@ -1,0 +1,18 @@
+/**
+ * Focus — Hide YouTube Homepage Feed
+ *
+ * Hides the main video grid and categories on the YouTube homepage.
+ * Applied only when the user is on the homepage context.
+ */
+#feed,
+ytd-browse[page-subtype="home"] ytd-rich-grid-renderer,
+ytd-browse[page-subtype="home"] #categories,
+ytd-browse[page-subtype="home"] #primary,
+ytd-browse[page-subtype="home"] {
+  display: none !important;
+}
+
+/* Clean up the page background */
+#page-manager {
+  background-color: var(--yt-spec-base-background, #fff) !important;
+}
