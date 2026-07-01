@@ -1,4 +1,5 @@
 import { useUsageData } from "../hooks/useUsageData";
+import { useTrackingStatus } from "../hooks/useTrackingStatus";
 
 // =============================================================================
 // Helpers
@@ -47,8 +48,27 @@ const RANK_GRADIENTS = [
 /**
  * Animated circular indicator for total focus time.
  */
-function TotalTimeCard({ totalMs }) {
+function TotalTimeCard({ totalMs, trackingStatus }) {
   const timeStr = formatTime(totalMs);
+
+  const isTracking = trackingStatus === 'tracking';
+  const isUnknown = trackingStatus === 'unknown';
+
+  const dotColor = isTracking
+    ? 'bg-emerald-500'
+    : isUnknown
+    ? 'bg-slate-400'
+    : 'bg-amber-500';
+
+  const pingColor = isTracking ? 'bg-emerald-400' : '';
+
+  const label = isTracking ? 'Tracking' : isUnknown ? '—' : 'Paused';
+
+  const labelColor = isTracking
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : isUnknown
+    ? 'text-slate-400 dark:text-slate-500'
+    : 'text-amber-600 dark:text-amber-400';
 
   return (
     <div className="relative rounded-2xl bg-white border border-slate-100 shadow-sm p-5 mb-4 overflow-hidden group dark:bg-[#1e2533] dark:border-slate-800">
@@ -66,14 +86,16 @@ function TotalTimeCard({ totalMs }) {
           </p>
         </div>
 
-        {/* Pulse indicator */}
+        {/* Dynamic tracking indicator */}
         <div className="flex items-center gap-2">
           <div className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+            {isTracking && (
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pingColor} opacity-75`} />
+            )}
+            <span className={`relative inline-flex rounded-full h-3 w-3 ${dotColor} transition-colors duration-300`} />
           </div>
-          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-            Tracking
+          <span className={`text-[10px] font-medium transition-colors duration-300 ${labelColor}`}>
+            {label}
           </span>
         </div>
       </div>
@@ -134,6 +156,7 @@ function DomainRow({ domain, ms, maxMs, index }) {
  */
 export default function Dashboard() {
   const { usageData, totalMs, isLoading, error } = useUsageData(5);
+  const { trackingStatus } = useTrackingStatus();
 
   // The max value among top domains (for relative progress bars)
   const maxMs = usageData.length > 0 ? usageData[0].ms : 0;
@@ -160,7 +183,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-3">
       {/* Total Time Card */}
-      <TotalTimeCard totalMs={totalMs} />
+      <TotalTimeCard totalMs={totalMs} trackingStatus={trackingStatus} />
 
       {/* Top Domains */}
       <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4 dark:bg-[#1e2533] dark:border-slate-800">
