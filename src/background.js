@@ -1,28 +1,41 @@
 /**
  * Focus — Background Service Worker
  *
- * Tracking Engine with Smart Batching & Idle Detection.
+ * Tracking Engine with Alarm-based Flushing & Service Worker Survival.
  *
  * Architecture:
  *   Chrome tab/window/idle events → in-memory buffer → chrome.storage.local
  *
+ * MV3 Design:
+ *   - Service workers are killed by Chrome at any time (not just on restart).
+ *   - setInterval() dies with the SW → replaced with chrome.alarms (persistent).
+ *   - In-memory state is restored from chrome.storage.local on every SW start.
+ *   - Tracking cursor (activeDomain + trackingStartedAt) is persisted on every
+ *     state transition so no data is lost between SW restarts.
+ *
  * Flush triggers:
- *   - 30-second interval
+ *   - "focus-flush" alarm (every 30 seconds) — survives SW restarts
  *   - Active tab changes (tabs.onActivated)
+ *   - URL changes within active tab (tabs.onUpdated)
  *   - Window focus changes (windows.onFocusChanged)
  *   - Idle state changes (idle.onStateChanged)
+ *   - SW suspension (runtime.onSuspend) — last-chance save before SW is killed
  *
  * Storage format:
  *   Key: "usage_YYYY-MM-DD"
  *   Value: { "youtube.com": 45000, "github.com": 120000, ... }  (ms per domain)
  */
 
+import { StorageAdapter } from './lib/storage-adapter.js';
+
 // =============================================================================
 // Constants
 // =============================================================================
 
-const FLUSH_INTERVAL_MS = 30_000; // 30 seconds
-const IDLE_THRESHOLD_SECONDS = 60; // 1 minute
+const FLUSH_ALARM_NAME = 'focus-flush';
+const FLUSH_INTERVAL_MINUTES = 0.5;           // 30 seconds
+const IDLE_THRESHOLD_SECONDS = 60;            // 1 minute
+const MAX_CREDITABLE_MS = 60_000;             // Cap recovered time to 60s to avoid counting sleep/idle gaps
 const INTERNAL_URL_PREFIXES = ['chrome://', 'chrome-extension://', 'edge://', 'about:', 'devtools://'];
 
 // =============================================================================
@@ -38,14 +51,11 @@ let activeDomain = null;
 /** @type {number|null} Timestamp when tracking started for the current domain */
 let trackingStartedAt = null;
 
-/** @type {boolean} Whether the user is currently active */
+/** @type {boolean} Whether the user is currently active (not idle/locked) */
 let isUserActive = true;
 
 /** @type {boolean} Whether a browser window is focused */
 let isWindowFocused = true;
-
-/** @type {ReturnType<typeof setInterval>|null} */
-let flushTimer = null;
 
 // =============================================================================
 // Domain Extraction
@@ -59,14 +69,13 @@ let flushTimer = null;
 function extractDomain(url) {
   if (!url) return null;
 
-  // Skip internal browser URLs
   for (const prefix of INTERNAL_URL_PREFIXES) {
     if (url.startsWith(prefix)) return null;
   }
 
   try {
     const hostname = new URL(url).hostname;
-    return hostname.replace(/^www\./, '');
+    return hostname.replace(/^www\./, '') || null;
   } catch {
     return null;
   }
@@ -93,8 +102,8 @@ function getTodayKey() {
 // =============================================================================
 
 /**
- * Record elapsed time for the active domain into the buffer.
- * Resets the tracking timer.
+ * Record elapsed time for the active domain into the in-memory buffer.
+ * Resets the tracking timer start so the next call only counts new time.
  */
 function recordElapsedTime() {
   if (!activeDomain || !trackingStartedAt) return;
@@ -105,18 +114,19 @@ function recordElapsedTime() {
     usageBuffer.set(activeDomain, current + elapsed);
   }
 
-  // Reset the timer to now (not null — we're still on this domain)
+  // Reset timer to now — still on this domain, just snaphotting the interval
   trackingStartedAt = Date.now();
 }
 
 /**
  * Flush the in-memory buffer to chrome.storage.local.
  * Merges buffered values with existing stored data for today.
+ * On failure, restores the buffer so data is not lost.
  */
 async function flushBuffer() {
   if (usageBuffer.size === 0) return;
 
-  // Snapshot and clear the buffer atomically
+  // Snapshot and clear atomically before async work
   const snapshot = new Map(usageBuffer);
   usageBuffer.clear();
 
@@ -126,14 +136,13 @@ async function flushBuffer() {
     const result = await chrome.storage.local.get(todayKey);
     const existing = result[todayKey] || {};
 
-    // Merge snapshot into existing data
     for (const [domain, ms] of snapshot) {
       existing[domain] = (existing[domain] || 0) + ms;
     }
 
     await chrome.storage.local.set({ [todayKey]: existing });
   } catch (error) {
-    // On failure, restore the buffer so data isn't lost
+    // Restore buffer on failure so data isn't lost on next flush
     for (const [domain, ms] of snapshot) {
       const current = usageBuffer.get(domain) || 0;
       usageBuffer.set(domain, current + ms);
@@ -142,37 +151,51 @@ async function flushBuffer() {
   }
 }
 
+/**
+ * Persist current tracking cursor to storage so it survives SW restarts.
+ */
+async function saveState() {
+  try {
+    await StorageAdapter.saveTrackingState({ activeDomain, trackingStartedAt });
+  } catch (error) {
+    console.warn('[Focus] Failed to save tracking state:', error);
+  }
+}
+
 // =============================================================================
 // Tracking Control
 // =============================================================================
 
 /**
- * Start tracking a new domain. Records elapsed time for the previous domain first.
+ * Start tracking a new domain. Records elapsed time for the previous domain.
+ * Persists the new cursor to storage.
  * @param {string|null} domain
  */
-function startTracking(domain) {
-  // Record time spent on the previous domain
+async function startTracking(domain) {
   recordElapsedTime();
-
   activeDomain = domain;
   trackingStartedAt = domain ? Date.now() : null;
+  await saveState();
 }
 
 /**
  * Pause all tracking (e.g., when idle or window loses focus).
- * Records elapsed time and clears the active state.
+ * Records elapsed time and persists the paused state.
  */
-function pauseTracking() {
+async function pauseTracking() {
   recordElapsedTime();
   trackingStartedAt = null;
+  await saveState();
 }
 
 /**
  * Resume tracking the current domain (e.g., when user returns from idle).
+ * Persists the resumed state.
  */
-function resumeTracking() {
+async function resumeTracking() {
   if (activeDomain) {
     trackingStartedAt = Date.now();
+    await saveState();
   }
 }
 
@@ -189,9 +212,8 @@ async function onTabActivated(activeInfo) {
     const tab = await chrome.tabs.get(activeInfo.tabId);
     const domain = extractDomain(tab.url);
     await flushBuffer();
-    startTracking(domain);
+    await startTracking(domain);
   } catch (error) {
-    // Tab may have been closed between event and get()
     console.warn('[Focus] Tab activation handler error:', error);
   }
 }
@@ -200,10 +222,8 @@ async function onTabActivated(activeInfo) {
  * Handle tab URL updates (e.g., navigation within a tab).
  * @param {number} tabId
  * @param {{ url?: string }} changeInfo
- * @param {chrome.tabs.Tab} tab
  */
-async function onTabUpdated(tabId, changeInfo, tab) {
-  // Only care about URL changes on the active tab
+async function onTabUpdated(tabId, changeInfo) {
   if (!changeInfo.url) return;
 
   try {
@@ -211,7 +231,7 @@ async function onTabUpdated(tabId, changeInfo, tab) {
     if (activeTab && activeTab.id === tabId) {
       const domain = extractDomain(changeInfo.url);
       await flushBuffer();
-      startTracking(domain);
+      await startTracking(domain);
     }
   } catch (error) {
     console.warn('[Focus] Tab update handler error:', error);
@@ -220,22 +240,20 @@ async function onTabUpdated(tabId, changeInfo, tab) {
 
 /**
  * Handle window focus changes.
- * @param {number} windowId — -1 if no window is focused
+ * @param {number} windowId — WINDOW_ID_NONE (-1) if no window is focused
  */
 async function onWindowFocusChanged(windowId) {
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
-    // No browser window is focused
     isWindowFocused = false;
-    pauseTracking();
+    await pauseTracking();
     await flushBuffer();
   } else {
     isWindowFocused = true;
-    // Determine the active tab in the newly focused window
     try {
       const [activeTab] = await chrome.tabs.query({ active: true, windowId });
       if (activeTab) {
         const domain = extractDomain(activeTab.url);
-        startTracking(domain);
+        await startTracking(domain);
       }
     } catch (error) {
       console.warn('[Focus] Window focus handler error:', error);
@@ -255,60 +273,108 @@ async function onIdleStateChanged(newState) {
   if (newState === 'active') {
     isUserActive = true;
     if (isWindowFocused) {
-      resumeTracking();
+      await resumeTracking();
     }
   } else {
     // "idle" or "locked"
     isUserActive = false;
-    pauseTracking();
+    await pauseTracking();
     await flushBuffer();
   }
 }
 
 // =============================================================================
-// Initialization
+// Alarm Handler
 // =============================================================================
 
 /**
- * Initialize tracking state by reading the currently active tab.
+ * Periodic flush tick — triggered by the "focus-flush" chrome.alarm every 30s.
+ * Unlike setInterval, chrome.alarms survive service worker restarts.
  */
-async function initialize() {
+async function onAlarm(alarm) {
+  if (alarm.name !== FLUSH_ALARM_NAME) return;
+
+  if (activeDomain && trackingStartedAt) {
+    recordElapsedTime();
+  }
+  await flushBuffer();
+  await saveState();
+}
+
+// =============================================================================
+// Alarm Setup
+// =============================================================================
+
+/**
+ * Ensure the persistent flush alarm is registered.
+ * chrome.alarms survive SW restarts, but we re-create to avoid duplicates.
+ */
+async function ensureAlarm() {
+  // Clear any stale alarm before creating a fresh one
+  await chrome.alarms.clear(FLUSH_ALARM_NAME);
+  await chrome.alarms.create(FLUSH_ALARM_NAME, {
+    periodInMinutes: FLUSH_INTERVAL_MINUTES,
+    delayInMinutes: FLUSH_INTERVAL_MINUTES,
+  });
+}
+
+// =============================================================================
+// Initialization (runs on EVERY service worker start)
+// =============================================================================
+
+/**
+ * Restore persisted state and resume tracking.
+ *
+ * This runs as a top-level async IIFE so it executes on every SW instantiation,
+ * not just onInstalled/onStartup. This is the correct MV3 pattern.
+ */
+(async () => {
   try {
+    // Step 1: Restore previously persisted tracking cursor
+    const saved = await StorageAdapter.getTrackingState();
+    activeDomain = saved.activeDomain;
+    const savedStartedAt = saved.trackingStartedAt;
+
+    // Step 2: If we were tracking something when the SW was killed,
+    //         credit the elapsed time — but cap it to avoid counting sleep/idle gaps.
+    if (activeDomain && savedStartedAt) {
+      const elapsed = Date.now() - savedStartedAt;
+      const creditable = Math.min(elapsed, MAX_CREDITABLE_MS);
+      if (creditable > 0) {
+        const current = usageBuffer.get(activeDomain) || 0;
+        usageBuffer.set(activeDomain, current + creditable);
+      }
+    }
+
+    // Step 3: Flush any recovered time immediately to storage
+    await flushBuffer();
+
+    // Step 4: Query the currently active tab and begin fresh tracking
     const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (activeTab) {
       const domain = extractDomain(activeTab.url);
-      startTracking(domain);
+      await startTracking(domain);
+    } else {
+      // No active tab — persist the cleared state
+      trackingStartedAt = null;
+      await saveState();
     }
+
+    // Step 5: Ensure the alarm is registered
+    await ensureAlarm();
+
+    // Step 6: Configure idle detection threshold
+    chrome.idle.setDetectionInterval(IDLE_THRESHOLD_SECONDS);
+
+    console.log('[Focus] Tracking engine initialized.');
   } catch (error) {
-    console.warn('[Focus] Initialization error:', error);
+    console.error('[Focus] Initialization error:', error);
   }
-
-  // Set up the periodic flush timer
-  flushTimer = setInterval(async () => {
-    if (activeDomain && trackingStartedAt) {
-      recordElapsedTime();
-    }
-    await flushBuffer();
-  }, FLUSH_INTERVAL_MS);
-
-  // Configure idle detection
-  chrome.idle.setDetectionInterval(IDLE_THRESHOLD_SECONDS);
-}
+})();
 
 // =============================================================================
 // Event Listeners
 // =============================================================================
-
-// Lifecycle events
-chrome.runtime.onInstalled.addListener(() => {
-  console.log('[Focus] Extension installed — initializing tracking engine.');
-  initialize();
-});
-
-chrome.runtime.onStartup.addListener(() => {
-  console.log('[Focus] Browser started — initializing tracking engine.');
-  initialize();
-});
 
 // Tab events
 chrome.tabs.onActivated.addListener(onTabActivated);
@@ -319,6 +385,22 @@ chrome.windows.onFocusChanged.addListener(onWindowFocusChanged);
 
 // Idle events
 chrome.idle.onStateChanged.addListener(onIdleStateChanged);
+
+// Alarm events — periodic flush (replaces setInterval)
+chrome.alarms.onAlarm.addListener(onAlarm);
+
+// onSuspend — last-chance save before Chrome kills the service worker
+chrome.runtime.onSuspend.addListener(async () => {
+  recordElapsedTime();
+  await flushBuffer();
+  await saveState();
+  console.log('[Focus] SW suspended — state saved.');
+});
+
+// onInstalled — first-install logging only (tracking init is handled by the IIFE above)
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  console.log(`[Focus] Extension ${reason} — tracking engine running.`);
+});
 
 // =============================================================================
 // Website Blocking — webNavigation Interception
@@ -382,10 +464,6 @@ chrome.webNavigation.onBeforeNavigate.addListener(async (details) => {
 /**
  * Scan ALL open tabs and block/unblock them based on the current blocklist.
  * Called whenever the blocklist or settings change.
- *
- * - If a tab shows a non-blocked site → do nothing
- * - If a tab shows a blocked site → redirect to blocked.html
- * - If a tab shows blocked.html for a now-unblocked site → redirect back
  */
 async function blockActiveTabs() {
   try {
@@ -411,7 +489,6 @@ async function blockActiveTabs() {
           const decoded = decodeURIComponent(originalUrl);
           const hostname = new URL(decoded).hostname.replace(/^www\./, '').toLowerCase();
 
-          // If site is no longer blocked OR blocking is disabled → unblock
           if (!settings.blockingEnabled || !isDomainBlocked(hostname, blocklist)) {
             chrome.tabs.update(tab.id, { url: decoded });
           }
@@ -440,17 +517,56 @@ async function blockActiveTabs() {
 }
 
 // =============================================================================
+// Tracking Status Query
+// =============================================================================
+
+/**
+ * Derive the current tracking status from in-memory state.
+ * @returns {"tracking"|"paused"}
+ */
+function getTrackingStatus() {
+  if (activeDomain && isUserActive && isWindowFocused) {
+    return 'tracking';
+  }
+  return 'paused';
+}
+
+// =============================================================================
 // Blocklist Change Listeners
 // =============================================================================
 
 /**
- * Listen for BLOCKLIST_UPDATE from the popup. Re-scan all tabs.
+ * Listen for messages from the popup:
+ *   - BLOCKLIST_UPDATE  → re-scan all tabs for blocked domains.
+ *   - GET_TRACKING_STATUS → respond with the current tracking status.
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'BLOCKLIST_UPDATE') {
     blockActiveTabs();
     sendResponse({ status: 'ok' });
+    return false;
   }
+
+  if (message.type === 'GET_TRACKING_STATUS') {
+    // Snapshot elapsed time into the buffer and reset trackingStartedAt to now.
+    // This gives the popup a clean zero-point to tick from, and ensures the
+    // buffer snapshot below includes all time up to this exact moment.
+    if (activeDomain && trackingStartedAt) {
+      recordElapsedTime();
+    }
+
+    // Convert the in-memory Map to a plain object for message passing.
+    const bufferedUsage = Object.fromEntries(usageBuffer);
+
+    sendResponse({
+      status: getTrackingStatus(),
+      activeDomain,
+      trackingStartedAt,
+      bufferedUsage,
+    });
+    return false;
+  }
+
   return false;
 });
 
@@ -466,4 +582,3 @@ chrome.storage.onChanged.addListener((changes, area) => {
     blockActiveTabs();
   }
 });
-

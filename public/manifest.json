@@ -3,9 +3,10 @@
   "name": "Focus — Digital Wellbeing",
   "version": "0.2.0",
   "description": "Track your web usage and block distracting websites.",
-  "permissions": ["storage", "tabs", "idle", "webNavigation"],
+  "permissions": ["storage", "tabs", "idle", "webNavigation", "alarms"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup/index.html",

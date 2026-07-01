@@ -412,6 +412,46 @@ export class StorageAdapter {
   }
 
   // ===========================================================================
+  // Tracking State Persistence (Service Worker Survival)
+  // ===========================================================================
+
+  /**
+   * Persist the active tracking cursor so it survives service worker restarts.
+   * Called after every state transition (start/pause/resume).
+   *
+   * @param {{ activeDomain: string|null, trackingStartedAt: number|null }} state
+   */
+  static async saveTrackingState({ activeDomain, trackingStartedAt }) {
+    await getStorage().local.set({
+      _trackingState: { activeDomain, trackingStartedAt },
+    });
+  }
+
+  /**
+   * Restore the tracking cursor from storage.
+   * Called once at the top of the service worker IIFE on every SW start.
+   *
+   * @returns {Promise<{ activeDomain: string|null, trackingStartedAt: number|null }>}
+   */
+  static async getTrackingState() {
+    const result = await getStorage().local.get('_trackingState');
+    const state = result._trackingState;
+    if (!state) return { activeDomain: null, trackingStartedAt: null };
+    return {
+      activeDomain: state.activeDomain ?? null,
+      trackingStartedAt: state.trackingStartedAt ?? null,
+    };
+  }
+
+  /**
+   * Clear the persisted tracking state.
+   * Called on day rollover or explicit reset.
+   */
+  static async clearTrackingState() {
+    await getStorage().local.remove('_trackingState');
+  }
+
+  // ===========================================================================
   // Listeners
   // ===========================================================================
 

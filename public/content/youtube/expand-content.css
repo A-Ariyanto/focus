@@ -2,11 +2,13 @@
  * Focus — Expand Video Player (Layout Correction)
  *
  * Applied automatically when the sidebar is hidden.
- * Centers the video player and description in the space freed by the sidebar.
+ * Centers the video player and description, but ONLY if 
+ * the user is not actively watching a playlist.
  */
 
-/* Center the primary content column */
-ytd-watch-flexy[flexy] #primary.ytd-watch-flexy {
+/* Center the primary content column if there is no visible playlist panel */
+ytd-watch-flexy[flexy]:not(:has(ytd-playlist-panel-renderer:not([hidden])))
+  #primary.ytd-watch-flexy {
   max-width: 1280px !important;
   margin: 0 auto !important;
   float: none !important;
