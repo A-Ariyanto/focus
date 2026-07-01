@@ -215,8 +215,11 @@
   // ===========================================================================
 
   function setupSPAListeners() {
+    let isNavigating = false;
+
     // 1. YouTube-native navigation events (most reliable)
     document.addEventListener('yt-navigate-start', (event) => {
+      isNavigating = true;
       const destUrl = event.detail?.url;
       if (destUrl && destUrl !== currentHref) {
         currentHref = destUrl;
@@ -234,6 +237,7 @@
     });
 
     document.addEventListener('yt-navigate-finish', () => {
+      isNavigating = false;
       currentHref = window.location.href;
       applyOptions();
     });
@@ -242,7 +246,7 @@
     const observer = new MutationObserver(() => {
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        applyOptions();
+        if (!isNavigating) applyOptions();
       }
     });
 
@@ -266,7 +270,7 @@
       origPush.apply(this, args);
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        applyOptions();
+        if (!isNavigating) applyOptions();
       }
     };
 
@@ -274,14 +278,14 @@
       origReplace.apply(this, args);
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        applyOptions();
+        if (!isNavigating) applyOptions();
       }
     };
 
     window.addEventListener('popstate', () => {
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        applyOptions();
+        if (!isNavigating) applyOptions();
       }
     });
   }
