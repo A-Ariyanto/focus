@@ -16,6 +16,20 @@
   'use strict';
 
   // ===========================================================================
+  // Early Prehide (replaces manifest-injected CSS)
+  // ===========================================================================
+
+  // Inject prehide CSS inline to prevent homepage feed flash.
+  // This runs synchronously at document_start before settings are loaded.
+  // Once settings are loaded, applyOptions() will either replace this with
+  // the full hide-feed.css or remove it entirely if Focus Mode is off.
+  const prehideStyle = document.createElement('style');
+  prehideStyle.id = 'focus-yt-prehide';
+  prehideStyle.textContent =
+    '#feed, ytd-browse[page-subtype="home"] { display: none !important; }';
+  (document.head || document.documentElement).appendChild(prehideStyle);
+
+  // ===========================================================================
   // State
   // ===========================================================================
 
@@ -97,11 +111,23 @@
   // ===========================================================================
 
   /**
+   * Remove the early-injected prehide style tag.
+   * Called once settings are loaded, regardless of active state.
+   */
+  function removePrehide() {
+    const el = document.getElementById('focus-yt-prehide');
+    if (el) el.remove();
+  }
+
+  /**
    * Apply or remove all CSS files based on current options and page context.
    * Called on initial load and every SPA navigation.
    */
   function applyOptions() {
     const opts = ytOptions;
+
+    // Always remove early prehide once settings are applied
+    removePrehide();
 
     // If feature mode is off entirely, remove everything and exit
     if (!opts || !opts.active) {
@@ -145,6 +171,7 @@
    * Remove all Focus CSS injections — called when focus mode is deactivated.
    */
   function deactivateAll() {
+    removePrehide();
     const files = [
       'hide-feed.css',
       'hide-sidebar.css',
@@ -188,32 +215,38 @@
   // ===========================================================================
 
   function setupSPAListeners() {
+    let isNavigating = false;
+
     // 1. YouTube-native navigation events (most reliable)
     document.addEventListener('yt-navigate-start', (event) => {
+      isNavigating = true;
       const destUrl = event.detail?.url;
       if (destUrl && destUrl !== currentHref) {
         currentHref = destUrl;
         // Re-apply with the destination URL context for instant feed hiding
         const opts = ytOptions;
         if (opts && opts.active && opts.hideFeed) {
-          const onHome = isHomePage(destUrl);
-          toggleCSS('hide-feed.css', onHome);
+          // Only proactively hide the feed when navigating TO the homepage.
+          // Do NOT remove it when navigating AWAY, otherwise the current feed
+          // will flash while the SPA is still loading the destination page.
+          if (isHomePage(destUrl)) {
+            toggleCSS('hide-feed.css', true);
+          }
         }
       }
     });
 
     document.addEventListener('yt-navigate-finish', () => {
-      if (window.location.href !== currentHref) {
-        currentHref = window.location.href;
-        applyOptions();
-      }
+      isNavigating = false;
+      currentHref = window.location.href;
+      applyOptions();
     });
 
     // 2. MutationObserver fallback for structural updates
     const observer = new MutationObserver(() => {
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        applyOptions();
+        if (!isNavigating) applyOptions();
       }
     });
 
@@ -237,7 +270,7 @@
       origPush.apply(this, args);
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        applyOptions();
+        if (!isNavigating) applyOptions();
       }
     };
 
@@ -245,14 +278,14 @@
       origReplace.apply(this, args);
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        applyOptions();
+        if (!isNavigating) applyOptions();
       }
     };
 
     window.addEventListener('popstate', () => {
       if (window.location.href !== currentHref) {
         currentHref = window.location.href;
-        applyOptions();
+        if (!isNavigating) applyOptions();
       }
     });
   }
@@ -291,15 +324,16 @@
         ytOptions = { ...defaultYtFocus, ...(raw.youtubeFocus || {}) };
       }
     } catch {
-      // Context invalidated or read error — keep defaults enabled
+      // Context invalidated or read error — fail safe with everything off
+      // so the user doesn't see unexpected blocking behavior
       ytOptions = {
-        active: true,
-        hideFeed: true,
-        hideSidebar: true,
-        hideComments: true,
-        hideEndscreen: true,
-        hideShorts: true,
-        hideMerch: true,
+        active: false,
+        hideFeed: false,
+        hideSidebar: false,
+        hideComments: false,
+        hideEndscreen: false,
+        hideShorts: false,
+        hideMerch: false,
         hideSubBar: false,
         hideTrending: false,
         hideNotificationBell: false,
@@ -316,7 +350,20 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'sync' && changes.settings) {
       const newSettings = changes.settings.newValue || {};
-      const defaultYtFocus = ytOptions || {};
+      const defaultYtFocus = {
+        active: true,
+        hideFeed: true,
+        hideSidebar: true,
+        hideComments: true,
+        hideEndscreen: true,
+        hideShorts: true,
+        hideMerch: true,
+        hideSubBar: false,
+        hideTrending: false,
+        hideNotificationBell: false,
+        hideLiveChat: false,
+        disableAutoplay: false,
+      };
       ytOptions = { ...defaultYtFocus, ...(newSettings.youtubeFocus || {}) };
       applyOptions();
     }
