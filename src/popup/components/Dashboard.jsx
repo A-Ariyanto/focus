@@ -1,5 +1,4 @@
 import { useUsageData } from "../hooks/useUsageData";
-import { useTrackingStatus } from "../hooks/useTrackingStatus";
 
 // =============================================================================
 // Helpers
@@ -155,8 +154,8 @@ function DomainRow({ domain, ms, maxMs, index }) {
  * Fully decoupled from chrome.storage — all data flows through the hook.
  */
 export default function Dashboard() {
-  const { usageData, totalMs, isLoading, error } = useUsageData(5);
-  const { trackingStatus } = useTrackingStatus();
+  const { usageData, totalMs, isLoading, error, isTracking } = useUsageData(5);
+  const trackingStatus = isTracking ? 'tracking' : 'paused';
 
   // The max value among top domains (for relative progress bars)
   const maxMs = usageData.length > 0 ? usageData[0].ms : 0;

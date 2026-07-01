@@ -548,7 +548,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === 'GET_TRACKING_STATUS') {
-    sendResponse({ status: getTrackingStatus() });
+    // Snapshot elapsed time into the buffer and reset trackingStartedAt to now.
+    // This gives the popup a clean zero-point to tick from, and ensures the
+    // buffer snapshot below includes all time up to this exact moment.
+    if (activeDomain && trackingStartedAt) {
+      recordElapsedTime();
+    }
+
+    // Convert the in-memory Map to a plain object for message passing.
+    const bufferedUsage = Object.fromEntries(usageBuffer);
+
+    sendResponse({
+      status: getTrackingStatus(),
+      activeDomain,
+      trackingStartedAt,
+      bufferedUsage,
+    });
     return false;
   }
 
