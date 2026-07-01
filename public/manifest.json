@@ -21,7 +21,6 @@
     {
       "matches": ["*://*.youtube.com/*"],
       "js": ["content/youtube-focus.js"],
-      "css": ["content/youtube/prehide-feed.css"],
       "run_at": "document_start"
     }
   ],
