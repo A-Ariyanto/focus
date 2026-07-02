@@ -10,6 +10,7 @@ Focus is a digital wellbeing extension that helps users reduce distraction by:
 - blocking distracting domains
 - showing a calm, clear blocked-page experience
 - keeping controls close at hand in the popup
+- removing YouTube distractions with granular per-feature control
 
 The design goal was not to make the UI look like a dashboard product. It needed to feel lightweight, direct, and calm enough to support focus rather than compete for attention.
 
@@ -24,10 +25,11 @@ The UI follows a few consistent principles:
 
 ## 3. Information Architecture
 
-The popup is split into two primary views:
+The popup is split into three primary views:
 
 - Dashboard: shows today's screen time and the top sites by usage.
 - Blocklist: manages the blocked domains list and the global blocking toggle.
+- YouTube Focus: provides granular toggles for hiding individual YouTube distraction surfaces (feed, sidebar, comments, Shorts, endscreen, merch, sub bar, trending, notification bell, live chat, autoplay).
 
 The blocked page is separate from the popup because it serves a different task: it interrupts distraction and reassures the user without asking for setup or navigation.
 
@@ -35,10 +37,13 @@ The blocked page is separate from the popup because it serves a different task: 
 
 The visual language uses:
 
-- dark slate backgrounds with gradient accents
+- dark slate backgrounds with gradient accents (dark mode) or a clean light palette (light mode)
 - glass-like cards for compact data panels
 - violet and cyan accents to suggest energy and clarity
+- decorative background elements with color variations for visual depth
 - rounded shapes and subtle motion for a calmer feel
+
+A theme toggle lets users switch between dark and light modes. The preference is persisted in `chrome.storage.sync` so it follows the user across devices.
 
 The blocked page uses the same visual direction, but it is intentionally simpler. Its job is to be readable in one glance and get out of the way.
 
@@ -46,9 +51,11 @@ The blocked page uses the same visual direction, but it is intentionally simpler
 
 The interaction model is built around small, immediate actions:
 
-- switch between Dashboard and Blocklist with tabs
+- switch between Dashboard, Blocklist, and YouTube Focus with tabs
 - add or remove blocked domains from the popup
 - toggle blocking on or off with one control
+- toggle individual YouTube distraction features on or off independently
+- switch between dark and light themes
 - show blocked-page context based on the URL that was interrupted
 
 Feedback is kept short and direct. Loading states, error states, and empty states are explicit so the user can tell whether the extension is working.
@@ -68,6 +75,8 @@ These choices keep the UI flexible while preserving the reliability required by 
 ## 7. Iteration Notes
 
 The current UI is the result of moving from a vanilla blocked page to a React-based extension entry. That change made the blocked page easier to maintain, but it also required careful handling of build output paths so the popup and blocked page continue to load correctly inside the extension.
+
+In v0.3, the popup grew a third tab for YouTube Focus Mode. The YouTube feature went through two design iterations: the first used a monolithic CSS file with class-scoping on `<html>`, which only allowed an all-or-nothing toggle. The final approach uses individual CSS files per feature injected dynamically via `<link>` tags, giving users independent control over each distraction surface. Dark mode was also added in this version, with decorative background elements to soften the visual feel.
 
 ## 8. What This Design Optimizes For
 
