@@ -2,3 +2,39 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:is(.dark *));
+
+html {
+  width: 360px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: #f8fafc; /* matches bg-slate-50 */
+}
+
+body {
+  width: 100%;
+  margin: 0;
+  background-color: inherit;
+}
+
+#root {
+  width: 100%;
+}
+
+html.dark {
+  background-color: #121824; /* matches dark:bg-[#121824] */
+}
+
+/* slim scrollbar; overlays rather than reserving a column */
+html::-webkit-scrollbar {
+  width: 8px;
+}
+html::-webkit-scrollbar-track {
+  background: transparent;
+}
+html::-webkit-scrollbar-thumb {
+  background-color: rgb(100 116 139 / 0.35);
+  border-radius: 9999px;
+}
+html.dark::-webkit-scrollbar-thumb {
+  background-color: rgb(148 163 184 / 0.3);
+}
