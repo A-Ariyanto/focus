@@ -72,6 +72,13 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
 
+    // Chrome will not reuse a preloaded chrome-extension:// resource across its
+    // internal "worlds", so every emitted <link rel="modulepreload"> is fetched,
+    // discarded, and logged as a "cross-world extension resource mismatch".
+    // The module graph loads these chunks anyway; preloading only buys a wasted
+    // duplicate fetch of local files. Emit no preload links.
+    modulePreload: false,
+
     rollupOptions: {
       input: {
         popup: resolve(__dirname, 'src/popup/index.html'),
