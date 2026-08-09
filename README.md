@@ -1,6 +1,14 @@
-# Introduction
+# Focus — Digital Wellbeing
 
-Hello! My name is Abdullah Ariyanto. I am currently a university student aiming to become a software engineer. My aim for this small project is to deploy a simple chrome and safari extension that can block distracting websites and help users focus on their work using Pomodoro Technique. I intend to add more feature to this project
+A Chrome extension that helps you stay focused by tracking time spent on websites, blocking distracting domains, and taming YouTube distractions with granular Focus Mode controls.
+
+## Features
+
+- **Website usage tracking** — see how much time you spend on each site, broken down by day
+- **Domain blocking** — maintain a blocklist of distracting sites with subdomain matching
+- **YouTube Focus Mode** — selectively hide feed, sidebar, comments, Shorts, endscreen, trending, merch, and more — each toggle independent
+- **Dark / light mode** — theme toggle with preference persistence
+- **Calm blocked page** — a minimal, CSP-compliant interstitial when you visit a blocked site
 
 ## Documentation
 
@@ -8,14 +16,41 @@ Hello! My name is Abdullah Ariyanto. I am currently a university student aiming 
 - [Architecture decisions](adr.md)
 - [Data schema](schema.md)
 
-# Development Log
+## Development
 
-[09/02/2026] - [MVP development]
+### Prerequisites
 
-- Initialised Repository
+- Node.js (v18+)
+- npm
 
-[27/04/2026] - [Release 0.2]
+### Getting started
+
+```bash
+npm install
+npm run dev      # start Vite dev server
+npm run build    # production build → dist/
+```
+
+Load the `dist/` folder as an unpacked extension in `chrome://extensions`.
+
+## Development Log
+
+[09/02/2026] — MVP development
+
+- Initialised repository
+
+[27/04/2026] — Release 0.2
 
 - React-based popup and blocked-page UI
 - Extension CSP hardening and safer blocked-page rendering
 - Updated build path handling for Chrome extension assets
+
+[01/07/2026] — Release 0.3
+
+- YouTube Focus Mode with 11 granular distraction toggles (feed, sidebar, comments, Shorts, endscreen, merch, sub bar, trending, notification bell, live chat, autoplay)
+- Per-feature CSS injection via individual CSS files and dynamic `<link>` tag management
+- Dark / light mode toggle with `chrome.storage.sync` persistence
+- Decorative background elements and improved button accessibility
+- In-memory `chrome.storage` shim for local development outside the extension runtime
+- Alarm-based tracking state persistence for service worker reliability
+- Updated application icons for improved visual consistency
