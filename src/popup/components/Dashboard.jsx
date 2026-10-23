@@ -1,30 +1,9 @@
 import { useUsageData } from "../hooks/useUsageData";
+import { formatTime } from "../../lib/format";
 
 // =============================================================================
 // Helpers
 // =============================================================================
-
-/**
- * Format milliseconds into a human-readable time string.
- * @param {number} ms
- * @returns {string} e.g., "2h 15m", "45m", "30s"
- */
-function formatTime(ms) {
-  if (ms < 1000) return "0s";
-
-  const totalSeconds = Math.floor(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) {
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-  }
-  if (minutes > 0) {
-    return `${minutes}m`;
-  }
-  return `${seconds}s`;
-}
 
 /**
  * Get a gradient color pair based on the domain's index/rank.
@@ -53,21 +32,13 @@ function TotalTimeCard({ totalMs, trackingStatus }) {
   const isTracking = trackingStatus === 'tracking';
   const isUnknown = trackingStatus === 'unknown';
 
-  const dotColor = isTracking
-    ? 'bg-emerald-500'
-    : isUnknown
-    ? 'bg-slate-400'
-    : 'bg-amber-500';
-
-  const pingColor = isTracking ? 'bg-emerald-400' : '';
-
   const label = isTracking ? 'Tracking' : isUnknown ? '—' : 'Paused';
 
-  const labelColor = isTracking
-    ? 'text-emerald-600 dark:text-emerald-400'
+  const pillColor = isTracking
+    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
     : isUnknown
-    ? 'text-slate-400 dark:text-slate-500'
-    : 'text-amber-600 dark:text-amber-400';
+    ? 'bg-slate-400/15 text-slate-400 dark:text-slate-500'
+    : 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
 
   return (
     <div className="relative rounded-2xl bg-white border border-slate-100 shadow-sm p-5 mb-4 overflow-hidden group dark:bg-[#1e2533] dark:border-slate-800">
@@ -86,17 +57,9 @@ function TotalTimeCard({ totalMs, trackingStatus }) {
         </div>
 
         {/* Dynamic tracking indicator */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex h-3 w-3">
-            {isTracking && (
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${pingColor} opacity-75`} />
-            )}
-            <span className={`relative inline-flex rounded-full h-3 w-3 ${dotColor} transition-colors duration-300`} />
-          </div>
-          <span className={`text-[10px] font-medium transition-colors duration-300 ${labelColor}`}>
-            {label}
-          </span>
-        </div>
+        <span className={`rounded-full px-2.5 py-1 text-[10px] font-medium transition-colors duration-300 ${pillColor}`}>
+          {label}
+        </span>
       </div>
     </div>
   );
@@ -148,13 +111,14 @@ function DomainRow({ domain, ms, maxMs, index }) {
 // =============================================================================
 
 /**
- * Dashboard — Displays today's total screen time and top 5 domains.
+ * Dashboard — Displays today's total screen time and every visited domain
+ * in a scrollable list, sorted by time spent.
  *
  * Uses the useUsageData hook for real-time data from StorageAdapter.
  * Fully decoupled from chrome.storage — all data flows through the hook.
  */
 export default function Dashboard() {
-  const { usageData, totalMs, isLoading, error, isTracking } = useUsageData(5);
+  const { usageData, totalMs, isLoading, error, isTracking } = useUsageData(Infinity);
   const trackingStatus = isTracking ? 'tracking' : 'paused';
 
   // The max value among top domains (for relative progress bars)
@@ -201,7 +165,7 @@ export default function Dashboard() {
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-white/5">
+          <div className="scroll-list max-h-64 -mr-2 pr-2 divide-y divide-slate-100 dark:divide-white/5">
             {usageData.map((entry, index) => (
               <DomainRow
                 key={entry.domain}
