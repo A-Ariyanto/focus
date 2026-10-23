@@ -37,6 +37,7 @@ const FLUSH_INTERVAL_MINUTES = 0.5;           // 30 seconds
 const IDLE_THRESHOLD_SECONDS = 60;            // 1 minute
 const MAX_CREDITABLE_MS = 60_000;             // Cap recovered time to 60s to avoid counting sleep/idle gaps
 const INTERNAL_URL_PREFIXES = ['chrome://', 'chrome-extension://', 'edge://', 'about:', 'devtools://'];
+const HISTORY_DAYS = 30;                      // Usage days kept in storage before they are deleted
 
 // =============================================================================
 // State
@@ -159,6 +160,30 @@ async function saveState() {
     await StorageAdapter.saveTrackingState({ activeDomain, trackingStartedAt });
   } catch (error) {
     console.warn('[Focus] Failed to save tracking state:', error);
+  }
+}
+
+// =============================================================================
+// History Retention
+// =============================================================================
+
+/** @type {string|null} Day key the retention cleanup last ran for (in-memory only) */
+let lastCleanupKey = null;
+
+/**
+ * Delete usage days older than HISTORY_DAYS. Runs once per day change, so old
+ * days are removed shortly after midnight or on the next browser start.
+ */
+async function pruneOldHistory() {
+  const todayKey = getTodayKey();
+  if (lastCleanupKey === todayKey) return;
+  lastCleanupKey = todayKey;
+
+  try {
+    await StorageAdapter.clearOldData(HISTORY_DAYS);
+  } catch (error) {
+    lastCleanupKey = null;
+    console.warn('[Focus] Failed to prune old history:', error);
   }
 }
 
@@ -299,6 +324,7 @@ async function onAlarm(alarm) {
   }
   await flushBuffer();
   await saveState();
+  await pruneOldHistory();
 }
 
 // =============================================================================
@@ -365,6 +391,9 @@ async function ensureAlarm() {
 
     // Step 6: Configure idle detection threshold
     chrome.idle.setDetectionInterval(IDLE_THRESHOLD_SECONDS);
+
+    // Step 7: Delete usage days past the retention window
+    await pruneOldHistory();
 
     console.log('[Focus] Tracking engine initialized.');
   } catch (error) {

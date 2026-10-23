@@ -32,17 +32,31 @@ html.dark {
   scrollbar-color: rgb(148 163 184 / 0.3) transparent; /* Firefox */
 }
 
+/* inner scroll areas (e.g. the sites list) share the page scrollbar style */
+.scroll-list {
+  overflow-y: auto;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgb(100 116 139 / 0.35) transparent; /* Firefox */
+}
+html.dark .scroll-list {
+  scrollbar-color: rgb(148 163 184 / 0.3) transparent; /* Firefox */
+}
+
 /* slim scrollbar; overlays rather than reserving a column */
-html::-webkit-scrollbar {
+html::-webkit-scrollbar,
+.scroll-list::-webkit-scrollbar {
   width: 8px;
 }
-html::-webkit-scrollbar-track {
+html::-webkit-scrollbar-track,
+.scroll-list::-webkit-scrollbar-track {
   background: transparent;
 }
-html::-webkit-scrollbar-thumb {
+html::-webkit-scrollbar-thumb,
+.scroll-list::-webkit-scrollbar-thumb {
   background-color: rgb(100 116 139 / 0.35);
   border-radius: 9999px;
 }
-html.dark::-webkit-scrollbar-thumb {
+html.dark::-webkit-scrollbar-thumb,
+html.dark .scroll-list::-webkit-scrollbar-thumb {
   background-color: rgb(148 163 184 / 0.3);
 }

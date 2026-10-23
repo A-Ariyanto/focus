@@ -25,6 +25,8 @@ Meaning:
 - Each key is a normalized domain name.
 - Each value is the accumulated time spent on that domain in milliseconds.
 - One record exists per day.
+- Only the last 30 days (including today) are kept; the background script deletes older keys after midnight or on the next browser start.
+- The popup's History tab exports days as JSON files to `<Downloads>/Focus Logs/`.
 
 #### Blocklist
 
