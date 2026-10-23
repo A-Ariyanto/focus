@@ -3,15 +3,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Width lives on body, not html: Firefox sizes the popup from the body's
+ * content. scrollbar-gutter reserves the scrollbar's space beside the content
+ * so Firefox's (non-overlay) scrollbar doesn't clip the right edge.
+ */
 html {
-  width: 360px;
   overflow-x: hidden;
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgb(100 116 139 / 0.35) transparent; /* Firefox */
   background-color: #f8fafc; /* matches bg-slate-50 */
 }
 
 body {
-  width: 100%;
+  width: 360px;
   margin: 0;
   background-color: inherit;
 }
@@ -22,6 +29,7 @@ body {
 
 html.dark {
   background-color: #121824; /* matches dark:bg-[#121824] */
+  scrollbar-color: rgb(148 163 184 / 0.3) transparent; /* Firefox */
 }
 
 /* slim scrollbar; overlays rather than reserving a column */

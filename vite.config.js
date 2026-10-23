@@ -5,32 +5,77 @@ import { resolve } from 'path';
 import { mkdirSync, existsSync, rmSync, readFileSync, writeFileSync } from 'fs';
 
 /**
- * Vite plugin to fix HTML output paths for Chrome Extension structure.
+ * Build target: `chrome` (default) or `firefox`, set via the TARGET env var.
+ * Both targets share all source code; only the manifest and output dir differ.
+ */
+const TARGET = process.env.TARGET === 'firefox' ? 'firefox' : 'chrome';
+const OUT_DIR = resolve(__dirname, 'dist', TARGET);
+
+/**
+ * Vite plugin that writes a browser-specific manifest.json.
+ *
+ * - Chrome MV3 runs the background as a service worker.
+ * - Firefox MV3 does not support `background.service_worker`; it runs the
+ *   background as an event page via `background.scripts`, and requires a
+ *   gecko add-on ID.
+ */
+function extensionManifest() {
+  return {
+    name: 'extension-manifest',
+    closeBundle() {
+      const manifest = JSON.parse(
+        readFileSync(resolve(__dirname, 'src/manifest.json'), 'utf-8')
+      );
+
+      if (TARGET === 'firefox') {
+        manifest.background = { scripts: ['background.js'], type: 'module' };
+        manifest.browser_specific_settings = {
+          gecko: {
+            id: 'my-extension@personal.local',
+            // 128 ESR: MV3 host permissions are requested at install time
+            strict_min_version: '128.0',
+            // Required by AMO; all data stays on the user's device
+            data_collection_permissions: { required: ['none'] },
+          },
+        };
+      }
+
+      writeFileSync(
+        resolve(OUT_DIR, 'manifest.json'),
+        JSON.stringify(manifest, null, 2) + '\n',
+        'utf-8'
+      );
+    },
+  };
+}
+
+/**
+ * Vite plugin to fix HTML output paths for the extension structure.
  *
  * Problem: Vite preserves the source directory structure, so
- * `src/popup/index.html` → `dist/src/popup/index.html`.
- * Chrome expects `popup/index.html` per the manifest.
+ * `src/popup/index.html` → `<outDir>/src/popup/index.html`.
+ * The browser expects `popup/index.html` per the manifest.
  *
  * This plugin:
  * 1. Moves built HTML files to extension-friendly output paths
  * 2. Fixes asset paths from nested source output to stable relative paths
- * 3. Cleans up the temporary `dist/src/` directory
+ * 3. Cleans up the temporary `<outDir>/src/` directory
  */
-function chromeExtensionHtmlFix() {
+function extensionHtmlFix() {
   return {
-    name: 'chrome-extension-html-fix',
+    name: 'extension-html-fix',
     closeBundle() {
       const htmlMoves = [
         {
-          srcHtml: resolve(__dirname, 'dist/src/popup/index.html'),
-          destDir: resolve(__dirname, 'dist/popup'),
-          destHtml: resolve(__dirname, 'dist/popup/index.html'),
+          srcHtml: resolve(OUT_DIR, 'src/popup/index.html'),
+          destDir: resolve(OUT_DIR, 'popup'),
+          destHtml: resolve(OUT_DIR, 'popup/index.html'),
           assetPrefix: './assets/',
         },
         {
-          srcHtml: resolve(__dirname, 'dist/src/blocked/index.html'),
-          destDir: resolve(__dirname, 'dist'),
-          destHtml: resolve(__dirname, 'dist/blocked.html'),
+          srcHtml: resolve(OUT_DIR, 'src/blocked/index.html'),
+          destDir: OUT_DIR,
+          destHtml: resolve(OUT_DIR, 'blocked.html'),
           assetPrefix: './popup/assets/',
         },
       ];
@@ -49,8 +94,8 @@ function chromeExtensionHtmlFix() {
         writeFileSync(move.destHtml, html, 'utf-8');
       }
 
-      // Clean up dist/src/
-      const distSrc = resolve(__dirname, 'dist/src');
+      // Clean up <outDir>/src/
+      const distSrc = resolve(OUT_DIR, 'src');
       if (existsSync(distSrc)) {
         rmSync(distSrc, { recursive: true, force: true });
       }
@@ -62,14 +107,15 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    chromeExtensionHtmlFix(),
+    extensionHtmlFix(),
+    extensionManifest(),
   ],
 
-  // Chrome extensions require relative paths for all assets
+  // Extensions require relative paths for all assets
   base: '',
 
   build: {
-    outDir: 'dist',
+    outDir: OUT_DIR,
     emptyOutDir: true,
 
     // Chrome will not reuse a preloaded chrome-extension:// resource across its

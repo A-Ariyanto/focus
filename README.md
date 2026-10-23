@@ -1,6 +1,6 @@
 # Focus — Digital Wellbeing
 
-A Chrome extension that helps you stay focused by tracking time spent on websites, blocking distracting domains, and taming YouTube distractions with granular Focus Mode controls.
+A Firefox and Chrome extension that helps you stay focused by tracking time spent on websites, blocking distracting domains, and taming YouTube distractions with granular Focus Mode controls.
 
 ## Features
 
@@ -28,10 +28,15 @@ A Chrome extension that helps you stay focused by tracking time spent on website
 ```bash
 npm install
 npm run dev      # start Vite dev server
-npm run build    # production build → dist/
+npm run build            # build both browsers → dist/chrome/ and dist/firefox/
+npm run build:firefox    # Firefox only
+npm run build:chrome     # Chrome only
 ```
 
-Load the `dist/` folder as an unpacked extension in `chrome://extensions`.
+Both builds share the same source; only the generated `manifest.json` differs (Firefox runs the background as an event page instead of a service worker). The base manifest lives in `src/manifest.json`.
+
+- **Firefox:** open `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on…* → select `dist/firefox/manifest.json`. Requires Firefox 128+.
+- **Chrome:** open `chrome://extensions`, enable Developer mode → *Load unpacked* → select `dist/chrome/`.
 
 ## Development Log
 

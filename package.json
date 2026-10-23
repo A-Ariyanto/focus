@@ -5,15 +5,23 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run build:chrome && npm run build:firefox",
     "lint": "eslint src/",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:chrome": "TARGET=chrome vite build",
+    "build:firefox": "TARGET=firefox vite build"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/A-Ariyanto/focus.git"
   },
-  "keywords": ["chrome-extension", "digital-wellbeing", "focus", "website-blocker"],
+  "keywords": [
+    "chrome-extension",
+    "digital-wellbeing",
+    "focus",
+    "website-blocker",
+    "firefox-extension"
+  ],
   "author": "Abdullah Ariyanto",
   "license": "ISC",
   "bugs": {
