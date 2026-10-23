@@ -384,25 +384,34 @@ export class StorageAdapter {
   // ===========================================================================
 
   /**
-   * Remove usage data older than N days.
+   * Get every stored usage day, newest first.
+   * @returns {Promise<Array<{ date: string, usage: Record<string, number> }>>}
+   *   date is "YYYY-MM-DD"; usage is domain → milliseconds
+   */
+  static async getUsageHistory() {
+    const allData = await getStorage().local.get(null);
+    return Object.keys(allData)
+      .filter((key) => key.startsWith('usage_'))
+      .sort()
+      .reverse()
+      .map((key) => ({ date: key.replace('usage_', ''), usage: allData[key] || {} }));
+  }
+
+  /**
+   * Remove usage data outside the last N days (today counts as one of them).
+   * Keys are compared as "usage_YYYY-MM-DD" strings, which sort by date and
+   * stay in local time (new Date("YYYY-MM-DD") would parse as UTC).
    * @param {number} daysToKeep — number of days of data to retain
    */
   static async clearOldData(daysToKeep = 30) {
     const allData = await getStorage().local.get(null);
-    const keysToRemove = [];
     const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - daysToKeep);
+    cutoff.setDate(cutoff.getDate() - (daysToKeep - 1));
+    const cutoffKey = StorageAdapter.getKeyForDate(cutoff);
 
-    for (const key of Object.keys(allData)) {
-      if (!key.startsWith('usage_')) continue;
-
-      const dateStr = key.replace('usage_', '');
-      const keyDate = new Date(dateStr);
-
-      if (!isNaN(keyDate.getTime()) && keyDate < cutoff) {
-        keysToRemove.push(key);
-      }
-    }
+    const keysToRemove = Object.keys(allData).filter(
+      (key) => key.startsWith('usage_') && key < cutoffKey
+    );
 
     if (keysToRemove.length > 0) {
       await getStorage().local.remove(keysToRemove);

@@ -2,15 +2,17 @@ import { useState } from "react";
 import Dashboard from "./components/Dashboard";
 import Blocklist from "./components/Blocklist";
 import YouTubeFocus from "./components/YouTubeFocus";
+import History from "./components/History";
 import ThemeToggle from "./components/ThemeToggle";
 
 /**
  * App — Root component for the Focus popup.
  *
  * Views:
- *   - Dashboard: Today's screen time + top 5 domains
+ *   - Dashboard: Today's screen time + every domain visited today
  *   - Blocklist: Site blocker management (add/remove domains, global toggle)
  *   - YouTube: Granular YouTube distraction-removal controls
+ *   - History: Last 30 days of usage, exportable as JSON log files
  */
 export default function App() {
   const [activeView, setActiveView] = useState("dashboard");
@@ -19,6 +21,7 @@ export default function App() {
     { id: "dashboard", label: "Dashboard" },
     { id: "blocklist", label: "Blocklist" },
     { id: "youtube", label: "YouTube" },
+    { id: "history", label: "History" },
   ];
 
   return (
@@ -80,6 +83,7 @@ export default function App() {
         {activeView === "dashboard" && <Dashboard />}
         {activeView === "blocklist" && <Blocklist />}
         {activeView === "youtube" && <YouTubeFocus />}
+        {activeView === "history" && <History />}
       </main>
     </div>
   );
