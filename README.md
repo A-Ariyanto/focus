@@ -5,6 +5,7 @@ A Firefox and Chrome extension that helps you stay focused by tracking time spen
 ## Features
 
 - **Website usage tracking** — see how much time you spend on each site, broken down by day
+- **Usage history** — the last 30 days are kept locally and can be exported as JSON log files
 - **Domain blocking** — maintain a blocklist of distracting sites with subdomain matching
 - **YouTube Focus Mode** — selectively hide feed, sidebar, comments, Shorts, endscreen, trending, merch, and more — each toggle independent
 - **Dark / light mode** — theme toggle with preference persistence
@@ -38,6 +39,18 @@ Both builds share the same source; only the generated `manifest.json` differs (F
 - **Firefox:** open `about:debugging#/runtime/this-firefox` → *Load Temporary Add-on…* → select `dist/firefox/manifest.json`. Requires Firefox 128+.
 - **Chrome:** open `chrome://extensions`, enable Developer mode → *Load unpacked* → select `dist/chrome/`.
 
+### Live reload
+
+Run the watcher and the browser runner in two terminals. The extension reloads in the test browser on every save.
+
+```bash
+npm run watch:firefox    # terminal 1: rebuild dist/firefox on save
+npm run run:firefox      # terminal 2: launch Firefox Developer Edition via web-ext
+
+npm run watch:chrome     # or the Chrome pair
+npm run run:chrome
+```
+
 ## Development Log
 
 [09/02/2026] — MVP development
@@ -59,3 +72,14 @@ Both builds share the same source; only the generated `manifest.json` differs (F
 - In-memory `chrome.storage` shim for local development outside the extension runtime
 - Alarm-based tracking state persistence for service worker reliability
 - Updated application icons for improved visual consistency
+
+[23/10/2026] — Release 0.4
+
+- Firefox support: separate Firefox build target with an event-page background and Gecko settings (Firefox 128+)
+- History tab listing the last 30 days of usage, with per-day and all-days JSON export to `Downloads/Focus Logs/`
+- 30-day retention: usage days older than 30 days are deleted automatically
+- Dashboard lists every site visited today in a scrollable list (previously top 5)
+- Tracking status shown as a coloured pill
+- Fixed popup clipping in Firefox and popup width/scrollbar styling
+- Disabled module preloading to stop Chrome cross-world resource mismatch errors
+- `watch:*` and `run:*` scripts for live reload with `web-ext`
